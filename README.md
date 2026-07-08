@@ -33,6 +33,8 @@ echo 'ELEVENLABS_API_KEY=sk_...' > .env
 
 **With Claude Code (recommended):** the repo ships the `ultrademo` skill. Open the folder in Claude Code and ask for a demo video - Claude scouts your app, drafts a scene-by-scene script for your sign-off, writes the flow, captures, and renders.
 
+**With another coding agent (Codex, OpenCode, Cursor, ...):** the repo ships an `AGENTS.md` that points your agent at the same playbook. Built and tested with Claude Code; any capable agent that reads AGENTS.md can follow it. Gemini CLI users: it looks for GEMINI.md by default, so set its `contextFileName` to AGENTS.md (or copy the file).
+
 **Manually:** copy `capture/flow-template.mjs` to `projects/<app>-<topic>-<date-time>/flow.mjs`, edit the scenes, then:
 
 ```bash
