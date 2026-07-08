@@ -82,6 +82,13 @@ if (flow.redactScript) {
   await context.addInitScript({content: flow.redactScript});
 }
 
+// General-purpose page injection (same mechanism, different intent): overlays
+// the flow wants on camera - keystroke callouts, a live URL chip, annotations.
+// Must only VISUALIZE real page state/events, never fabricate app UI.
+if (flow.inject) {
+  await context.addInitScript({content: flow.inject});
+}
+
 const page = context.pages()[0] ?? (await context.newPage());
 const video = page.video();
 const videoStart = Date.now();
@@ -215,6 +222,13 @@ if (flow.setup) {
 }
 
 for (const scene of flow.scenes) {
+  // `skip: true` drops a scene from this capture without deleting its
+  // definition - for beats pending renegotiation or temporarily broken.
+  if (scene.skip) {
+    console.log(`skipped ${scene.id} (skip: true)`);
+    continue;
+  }
+
   // Phone-framed still: renders a URL (usually from ctx) in a mobile viewport.
   if (scene.phone) {
     const url = typeof scene.url === 'function' ? scene.url(ctx) : scene.url;
