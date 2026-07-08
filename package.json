@@ -1,0 +1,24 @@
+{
+  "name": "ultrademo",
+  "version": "0.1.0",
+  "description": "Ultrademo: point an AI at your app, get a narrated demo video. Capture -> storyboard -> render, all on your machine.",
+  "license": "Apache-2.0",
+  "author": "New XP",
+  "homepage": "https://ultrademo.net",
+  "type": "module",
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "capture": "node capture/capture.mjs",
+    "tts": "node --env-file-if-exists=.env tts/tts.mjs",
+    "render": "node scripts/render.mjs",
+    "studio": "remotion studio render/src/index.ts",
+    "login": "node scripts/login.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.485",
+    "playwright": "^1.61.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.485"
+  }
+}

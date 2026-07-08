@@ -1,0 +1,6 @@
+node_modules
+projects/*/assets/
+projects/*/out/
+.env*
+.profiles/
+.DS_Store
