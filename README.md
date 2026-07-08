@@ -116,6 +116,8 @@ npm run render -- <project>
 
 Previous renders are automatically archived to `projects/<project>/out/archive/`, so every re-run leaves a before/after pair. If the update was cosmetic, that's the whole job. If it broke a selector, the skill re-scouts just the affected surface and patches the flow; if the feature itself changed, you edit the narration and only the edited lines re-synthesize. Reprompt, not reshoot.
 
+In Claude Code, `/ultrademo-rerun` does all of this for you: it lists your projects, checks your saved login still works, reads your repo's diff since the last capture when the code is available, and reports what visibly changed scene by scene.
+
 ## Capturing production apps
 
 Rules the skill enforces and manual users should follow: scout read-only; never save settings on camera; know which actions cost money before recording them (retakes multiply the cost); give stateful flows a reset recipe; redact anything you would not show a stranger (see above).

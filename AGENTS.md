@@ -4,6 +4,8 @@ This repo is a demo-video pipeline (Playwright capture → storyboard.json → T
 
 **Your playbook is [`.claude/skills/ultrademo/SKILL.md`](.claude/skills/ultrademo/SKILL.md). Read it fully and follow it** whenever the user asks for a demo video, product walkthrough, launch video, or a re-run of an existing one. The `.claude/` path is simply where Claude Code auto-discovers it; the instructions themselves are agent-agnostic and apply to any coding agent (Codex, Gemini CLI, OpenCode, Cursor, and others).
 
+For refreshing an existing video ("I shipped, update my demo"), start from [`.claude/skills/ultrademo-rerun/SKILL.md`](.claude/skills/ultrademo-rerun/SKILL.md) instead - a thin entry point that finds the project and routes into the same playbook's Re-runs section.
+
 Non-negotiables from that playbook, restated because they matter most:
 
 - **Two user gates.** No capture happens before the user signs off the scene-by-scene script, and the first render gets scene-level review before you call it done.
