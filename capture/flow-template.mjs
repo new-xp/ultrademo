@@ -40,6 +40,15 @@ export default {
   colorScheme: 'light', // or 'dark' - match your app's theme
   redactScript: REDACT, // omit if nothing needs masking
 
+  // Optional presentation (all omittable; sensible defaults if absent):
+  // brand: '#ffb224',                 // accent for slides + branded captions
+  // caption: {theme: 'pill', size: 'md', position: 'bottom'},
+  //   // theme: 'pill' (default) | 'bar' (full-width lower third) | 'minimal' (text only)
+  //   // size: 'sm' | 'md' | 'lg'; position: 'bottom' | 'top'
+  // intro: {title: 'My App - walkthrough', subtitle: 'A quick tour'},
+  //   // title card; screenshot defaults to the first captured scene
+  // outro: {title: 'Thanks for watching', subtitle: 'Made with Ultrademo', url: 'myapp.com'},
+
   // Runs once before the scenes (not part of any clip window).
   setup: async (page) => {
     await page.goto(`${BASE}/login`);

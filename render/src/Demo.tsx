@@ -13,6 +13,8 @@ import {
 export const FPS = 30;
 const HOLD_AFTER_AUDIO = 0.7; // seconds of breathing room after each narration line
 const HOLD_AFTER_CLIP = 0.4; // minimum settle after a clip finishes
+const SLIDE_SECONDS = 3; // intro / outro title-card duration
+const TOPTAIL = 12; // frames of fade-from-black (open) and fade-to-black (close)
 
 // Source capture space is always 1920x1080; the vertical layout crops it.
 const SRC = {width: 1920, height: 1080};
@@ -20,6 +22,18 @@ const SRC = {width: 1920, height: 1080};
 export type Layout = 'wide' | 'vertical';
 
 export type CursorEvent = {t: number; type: 'move' | 'click'; x: number; y: number};
+
+// Caption presentation. Defaults to the dark pill; brand/theme overridable per
+// storyboard (storyboard.caption) or per render (--caption-* flags -> props).
+export type CaptionStyle = {
+  theme?: 'pill' | 'bar' | 'minimal'; // rounded chip / full-width lower third / text-only
+  size?: 'sm' | 'md' | 'lg';
+  position?: 'bottom' | 'top';
+  accent?: string; // background/bar tint (hex)
+};
+
+export type IntroSlide = {title: string; subtitle?: string; screenshot?: string};
+export type OutroSlide = {title: string; subtitle?: string; url?: string};
 
 export type Scene = {
   id: string;
@@ -43,8 +57,14 @@ export type Storyboard = {
   title: string;
   template?: string;
   project?: string;
+  brand?: string; // accent hex for slides + caption default
+  caption?: CaptionStyle;
+  intro?: IntroSlide;
+  outro?: OutroSlide;
   scenes: Scene[];
 };
+
+const BRAND_DEFAULT = '#ffb224';
 
 // If a clip outlasts its narration, play it faster (capped) instead of leaving
 // a silent action tail after the voice ends.
@@ -60,6 +80,12 @@ export const sceneFrames = (s: Scene): number => {
   const clip = s.clipDuration ? s.clipDuration / clipRate(s) + HOLD_AFTER_CLIP : 0;
   return Math.max(FPS, Math.round(Math.max(narration, clip) * FPS));
 };
+
+export const slideFrames = Math.round(SLIDE_SECONDS * FPS);
+export const introFrames = (sb: Storyboard): number => (sb.intro ? slideFrames : 0);
+export const outroFrames = (sb: Storyboard): number => (sb.outro ? slideFrames : 0);
+export const totalFrames = (sb: Storyboard): number =>
+  introFrames(sb) + sb.scenes.reduce((sum, s) => sum + sceneFrames(s), 0) + outroFrames(sb);
 
 const Cursor: React.FC<{scale: number}> = ({scale}) => (
   <svg
@@ -80,35 +106,78 @@ const Cursor: React.FC<{scale: number}> = ({scale}) => (
   </svg>
 );
 
-const Caption: React.FC<{text: string; layout: Layout}> = ({text, layout}) => (
-  <div
-    style={{
-      position: 'absolute',
-      bottom: layout === 'vertical' ? 140 : 56,
-      left: 0,
-      right: 0,
-      display: 'flex',
-      justifyContent: 'center',
-    }}
-  >
+const CAPTION_SIZE = {sm: {wide: 27, vertical: 33}, md: {wide: 34, vertical: 40}, lg: {wide: 42, vertical: 50}};
+
+const Caption: React.FC<{text: string; layout: Layout; style: CaptionStyle}> = ({text, layout, style}) => {
+  const theme = style.theme ?? 'pill';
+  const size = style.size ?? 'md';
+  const position = style.position ?? 'bottom';
+  const accent = style.accent ?? 'rgba(15,23,42,0.82)';
+  const fontSize = CAPTION_SIZE[size][layout];
+  const edge = layout === 'vertical' ? 140 : 56;
+
+  const box: React.CSSProperties =
+    theme === 'bar'
+      ? {
+          width: '100%',
+          background: accent.startsWith('#') ? hexToRgba(accent, 0.9) : accent,
+          color: '#f8fafc',
+          padding: layout === 'vertical' ? '26px 60px' : '22px 80px',
+          fontSize,
+          lineHeight: 1.35,
+          textAlign: 'center',
+        }
+      : theme === 'minimal'
+        ? {
+            maxWidth: layout === 'vertical' ? 940 : 1500,
+            color: '#ffffff',
+            padding: '0 40px',
+            fontSize,
+            lineHeight: 1.35,
+            textAlign: 'center',
+            textShadow: '0 2px 10px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)',
+            fontWeight: 600,
+          }
+        : {
+            maxWidth: layout === 'vertical' ? 940 : 1400,
+            background: accent.startsWith('#') ? hexToRgba(accent, 0.82) : accent,
+            color: '#f8fafc',
+            padding: layout === 'vertical' ? '18px 34px' : '18px 34px',
+            borderRadius: 14,
+            fontSize,
+            lineHeight: 1.35,
+            textAlign: 'center',
+          };
+
+  return (
     <div
       style={{
-        maxWidth: layout === 'vertical' ? 940 : 1400,
-        background: 'rgba(15,23,42,0.82)',
-        color: '#f8fafc',
-        padding: '18px 34px',
-        borderRadius: 14,
-        fontSize: layout === 'vertical' ? 40 : 34,
-        lineHeight: 1.35,
-        fontFamily:
-          'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        textAlign: 'center',
+        position: 'absolute',
+        [position]: theme === 'bar' ? 0 : edge,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
       }}
     >
-      {text}
+      <div
+        style={{
+          fontFamily:
+            'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          ...box,
+        }}
+      >
+        {text}
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const hexToRgba = (hex: string, a: number): string => {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+};
 
 // Piecewise-linear cursor position along the logged event track.
 const cursorAt = (events: CursorEvent[], t: number): {x: number; y: number} | null => {
@@ -324,21 +393,90 @@ const StillScene: React.FC<{scene: Scene; prev: Scene | null}> = ({scene, prev})
   );
 };
 
+// Full-frame title card for the optional intro / outro slides.
+const SlideView: React.FC<{
+  kind: 'intro' | 'outro';
+  intro?: IntroSlide;
+  outro?: OutroSlide;
+  brand: string;
+  layout: Layout;
+}> = ({kind, intro, outro, brand, layout}) => {
+  const frame = useCurrentFrame();
+  const rise = interpolate(frame, [0, 18], [24, 0], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)});
+  const fade = interpolate(frame, [0, 18], [0, 1], {extrapolateRight: 'clamp'});
+  const title = kind === 'intro' ? intro?.title : outro?.title;
+  const subtitle = kind === 'intro' ? intro?.subtitle : outro?.subtitle;
+
+  return (
+    <AbsoluteFill
+      style={{
+        background: 'radial-gradient(ellipse at 50% 35%, #16233b 0%, #0b1120 70%)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
+    >
+      {kind === 'intro' && intro?.screenshot ? (
+        <div
+          style={{
+            transform: `translateY(${rise * -0.6}px)`,
+            opacity: fade,
+            marginBottom: 44,
+            borderRadius: 16,
+            overflow: 'hidden',
+            border: '1px solid rgba(148,163,184,0.3)',
+            boxShadow: '0 40px 90px -30px rgba(0,0,0,0.8)',
+            width: layout === 'vertical' ? 760 : 980,
+          }}
+        >
+          <Img src={staticFile(intro.screenshot)} style={{width: '100%', display: 'block'}} />
+        </div>
+      ) : null}
+      <div style={{transform: `translateY(${rise}px)`, opacity: fade, textAlign: 'center', padding: '0 80px'}}>
+        <div style={{width: 54, height: 5, background: brand, borderRadius: 3, margin: '0 auto 30px'}} />
+        <div
+          style={{
+            color: '#f8fafc',
+            fontSize: layout === 'vertical' ? 66 : 76,
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
+            maxWidth: 1500,
+          }}
+        >
+          {title}
+        </div>
+        {subtitle ? (
+          <div style={{color: '#9aa3b5', fontSize: layout === 'vertical' ? 34 : 34, marginTop: 22}}>
+            {subtitle}
+          </div>
+        ) : null}
+        {kind === 'outro' && outro?.url ? (
+          <div style={{color: brand, fontSize: layout === 'vertical' ? 34 : 32, marginTop: 30, fontWeight: 600}}>
+            {outro.url}
+          </div>
+        ) : null}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 const SceneView: React.FC<{
   scene: Scene;
   prev: Scene | null;
   layout: Layout;
   captions: boolean;
   audio: boolean;
-}> = ({scene, prev, layout, captions, audio}) => {
-  const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 8], [0, 1], {extrapolateRight: 'clamp'});
-
+  captionStyle: CaptionStyle;
+}> = ({scene, prev, layout, captions, audio, captionStyle}) => {
   const content =
     scene.media === 'clip' ? <ClipScene scene={scene} /> : <StillScene scene={scene} prev={prev} />;
 
+  // Hard cut between scenes (no per-scene fade) - the composition-level
+  // fade-from-black / fade-to-black tops and tails the whole video, so scenes
+  // never dip to the dark background between cuts (that was the visible flash).
   return (
-    <AbsoluteFill style={{backgroundColor: '#0f172a', opacity}}>
+    <AbsoluteFill style={{backgroundColor: '#0f172a'}}>
       {scene.frame === 'phone' ? (
         <PhoneScene scene={scene} layout={layout} />
       ) : layout === 'vertical' ? (
@@ -346,10 +484,23 @@ const SceneView: React.FC<{
       ) : (
         content
       )}
-      {captions ? <Caption text={scene.script} layout={layout} /> : null}
+      {captions ? <Caption text={scene.script} layout={layout} style={captionStyle} /> : null}
       {audio && scene.audio ? <Audio src={staticFile(scene.audio)} /> : null}
     </AbsoluteFill>
   );
+};
+
+// One black overlay for the whole piece: reveals over the first TOPTAIL frames,
+// closes over the last TOPTAIL. Replaces the per-scene fades that caused the flash.
+const TopTail: React.FC<{total: number}> = ({total}) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(
+    frame,
+    [0, TOPTAIL, total - TOPTAIL, total],
+    [1, 0, 0, 1],
+    {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
+  );
+  return <AbsoluteFill style={{backgroundColor: '#000', opacity, pointerEvents: 'none'}} />;
 };
 
 export const Demo: React.FC<{
@@ -357,13 +508,27 @@ export const Demo: React.FC<{
   layout?: Layout;
   captions?: boolean;
   audio?: boolean;
-}> = ({storyboard, layout = 'wide', captions = true, audio = true}) => {
+  caption?: CaptionStyle;
+}> = ({storyboard, layout = 'wide', captions = true, audio = true, caption}) => {
   if (!storyboard) {
     return null;
   }
-  let cursor = 0;
+  const brand = storyboard.brand ?? BRAND_DEFAULT;
+  // Precedence: per-render caption overrides > storyboard.caption. Accent stays
+  // unset by default so captions use the readable dark pill; brand tints slides,
+  // and a caption accent is opt-in (e.g. a branded 'bar' theme).
+  const captionStyle: CaptionStyle = {...storyboard.caption, ...caption};
+  const total = totalFrames(storyboard);
+  let cursor = introFrames(storyboard);
+
   return (
     <AbsoluteFill style={{backgroundColor: '#0f172a'}}>
+      {storyboard.intro ? (
+        <Sequence from={0} durationInFrames={slideFrames}>
+          <SlideView kind="intro" intro={storyboard.intro} brand={brand} layout={layout} />
+        </Sequence>
+      ) : null}
+
       {storyboard.scenes.map((scene, i) => {
         const from = cursor;
         const frames = sceneFrames(scene);
@@ -376,10 +541,19 @@ export const Demo: React.FC<{
               layout={layout}
               captions={captions}
               audio={audio}
+              captionStyle={captionStyle}
             />
           </Sequence>
         );
       })}
+
+      {storyboard.outro ? (
+        <Sequence from={cursor} durationInFrames={slideFrames}>
+          <SlideView kind="outro" outro={storyboard.outro} brand={brand} layout={layout} />
+        </Sequence>
+      ) : null}
+
+      <TopTail total={total} />
     </AbsoluteFill>
   );
 };

@@ -1,8 +1,12 @@
 // Render helper: picks the composition, flags, and output name for a project.
 //
 // Usage: npm run render -- <project> [--vertical] [--gif] [--no-captions] [--stems]
+//                                    [--caption-theme=pill|bar|minimal] [--caption-size=sm|md|lg]
+//                                    [--caption-position=bottom|top]
 //
 // Default output is the FINALIZED video (captions burned in, narration mixed).
+// Caption look is set per-storyboard (storyboard.caption); the --caption-* flags
+// override it for a single render so you can try styles without re-capturing.
 // Power-user opt-ins for editing before publishing:
 //   --no-captions  finalized video without burned-in captions
 //   --stems        editor-ready bundle in out/<project>-stems/:
@@ -15,13 +19,23 @@ import {existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync
 const args = process.argv.slice(2);
 const project = args.find((a) => !a.startsWith('--'));
 if (!project) {
-  console.error('Usage: npm run render -- <project> [--vertical] [--gif] [--no-captions] [--stems]');
+  console.error('Usage: npm run render -- <project> [--vertical] [--gif] [--no-captions] [--stems] [--caption-theme=] [--caption-size=] [--caption-position=]');
   process.exit(1);
 }
 const vertical = args.includes('--vertical');
 const gif = args.includes('--gif');
 const noCaptions = args.includes('--no-captions');
 const stems = args.includes('--stems');
+const flagVal = (name) => {
+  const hit = args.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.split('=')[1] : undefined;
+};
+const captionOverride = {
+  theme: flagVal('caption-theme'),
+  size: flagVal('caption-size'),
+  position: flagVal('caption-position'),
+};
+const caption = Object.fromEntries(Object.entries(captionOverride).filter(([, v]) => v));
 
 const comp = vertical ? 'DemoVertical' : 'Demo';
 const publicDir = `projects/${project}/assets`;
@@ -30,6 +44,7 @@ const outDir = `projects/${project}/out`;
 // Mirror of the renderer's timing math (Demo.tsx) - keep in sync.
 const HOLD_AFTER_AUDIO = 0.7;
 const HOLD_AFTER_CLIP = 0.4;
+const SLIDE_SECONDS = 3; // intro/outro title-card duration (Demo.tsx)
 const FPS = 30;
 const clipRate = (s) => {
   const narration = (s.audioDuration ?? s.durationHint ?? 4) + HOLD_AFTER_AUDIO;
@@ -69,9 +84,11 @@ const renderComp = (out, props) => {
 };
 mkdirSync(outDir, {recursive: true});
 
+const captionProp = Object.keys(caption).length ? {caption} : {};
+
 if (!stems) {
   const out = `${outDir}/${project}${vertical ? '-vertical' : ''}${noCaptions ? '-nocaptions' : ''}.${gif ? 'gif' : 'mp4'}`;
-  renderComp(out, {storyboard: null, captions: !noCaptions});
+  renderComp(out, {storyboard: null, captions: !noCaptions, ...captionProp});
   console.log(`\nrendered ${out}`);
 } else {
   const dir = `${outDir}/stems`;
@@ -80,11 +97,11 @@ if (!stems) {
 
   // the finalized video is ALWAYS produced, stems are additional
   const finalOut = `${outDir}/${project}${vertical ? '-vertical' : ''}.mp4`;
-  renderComp(finalOut, {storyboard: null});
+  renderComp(finalOut, {storyboard: null, ...captionProp});
   console.log(`rendered ${finalOut} (finalized)`);
 
-  // scene start offsets on the final timeline
-  let t = 0;
+  // scene start offsets on the final timeline; an intro slide pushes scene 1 back
+  let t = sb.intro ? SLIDE_SECONDS : 0;
   const starts = sb.scenes.map((s) => {
     const at = t;
     t += sceneSeconds(s);
