@@ -122,6 +122,10 @@ In Claude Code, `/ultrademo-rerun` does all of this for you: it lists your proje
 
 Rules the skill enforces and manual users should follow: scout read-only; never save settings on camera; know which actions cost money before recording them (retakes multiply the cost); give stateful flows a reset recipe; redact anything you would not show a stranger (see above).
 
+## Security
+
+Scanned with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) - **0/100, SAFE** with the committed baseline. Every finding was triaged; the false positives (all heuristic matches on legitimate browser-automation and `.env` key-setup code) are documented with justifications in [`.skillspector-baseline.yaml`](.skillspector-baseline.yaml). Full write-up: [`SECURITY-SCAN.md`](SECURITY-SCAN.md). Reproduce with `skillspector scan . --no-llm --baseline .skillspector-baseline.yaml`.
+
 ## License
 
 Apache-2.0 (see `LICENSE`). Note: Ultrademo depends on [Remotion](https://remotion.dev), which has its own license - free for individuals and small companies, but larger companies need a Remotion company license. Check your eligibility at remotion.dev/license.
