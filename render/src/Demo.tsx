@@ -30,7 +30,12 @@ export type CaptionStyle = {
   size?: 'sm' | 'md' | 'lg';
   position?: 'bottom' | 'top';
   accent?: string; // background/bar tint (hex)
+  // Karaoke word-highlight (needs per-word timings -> ElevenLabs voice only;
+  // free voices fall back to the static caption). Off unless set.
+  highlight?: 'dim' | 'pill' | 'wipe';
 };
+
+export type WordTiming = {w: string; start: number; end: number};
 
 export type IntroSlide = {title: string; subtitle?: string; screenshot?: string};
 export type OutroSlide = {title: string; subtitle?: string; url?: string};
@@ -50,6 +55,7 @@ export type Scene = {
   action?: {type: 'click' | 'hover' | 'none'; x: number; y: number};
   audio?: string; // path under public/
   audioDuration?: number; // seconds, written by the tts step
+  words?: WordTiming[]; // per-word timings from ElevenLabs (karaoke captions)
   durationHint?: number; // seconds, fallback when no audio
 };
 
@@ -108,13 +114,68 @@ const Cursor: React.FC<{scale: number}> = ({scale}) => (
 
 const CAPTION_SIZE = {sm: {wide: 27, vertical: 33}, md: {wide: 34, vertical: 40}, lg: {wide: 42, vertical: 50}};
 
-const Caption: React.FC<{text: string; layout: Layout; style: CaptionStyle}> = ({text, layout, style}) => {
+const WORD_GREY = '#8b93a6';
+
+// Karaoke word run: each word styled by whether it's been spoken, is being
+// spoken now (t within [start,end)), or is upcoming. `t` is audio-relative
+// seconds (audio starts at the scene's frame 0).
+const WordRun: React.FC<{words: WordTiming[]; t: number; mode: 'dim' | 'pill' | 'wipe'; accent: string}> = ({
+  words,
+  t,
+  mode,
+  accent,
+}) => (
+  <>
+    {words.map((word, i) => {
+      const done = t >= word.end;
+      const active = t >= word.start && t < word.end;
+      const p = active ? Math.min(1, Math.max(0, (t - word.start) / Math.max(0.001, word.end - word.start))) : 0;
+      let st: React.CSSProperties = {};
+      if (mode === 'dim') {
+        st = {opacity: active ? 1 : 0.4, fontWeight: active ? 700 : 400};
+      } else if (mode === 'pill') {
+        st = active
+          ? {background: accent, color: '#1a1200', borderRadius: 8, padding: '2px 6px', margin: '0 -6px', fontWeight: 600}
+          : {};
+      } else {
+        st = done
+          ? {color: '#ffffff'}
+          : active
+            ? {
+                background: `linear-gradient(90deg, ${accent} ${p * 100}%, ${WORD_GREY} ${p * 100}%)`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 600,
+              }
+            : {color: WORD_GREY};
+      }
+      return (
+        <React.Fragment key={i}>
+          {i > 0 ? ' ' : ''}
+          <span style={st}>{word.w}</span>
+        </React.Fragment>
+      );
+    })}
+  </>
+);
+
+const Caption: React.FC<{
+  text: string;
+  words?: WordTiming[];
+  layout: Layout;
+  style: CaptionStyle;
+  highlightColor: string;
+}> = ({text, words, layout, style, highlightColor}) => {
+  const frame = useCurrentFrame();
   const theme = style.theme ?? 'pill';
   const size = style.size ?? 'md';
   const position = style.position ?? 'bottom';
   const accent = style.accent ?? 'rgba(15,23,42,0.82)';
   const fontSize = CAPTION_SIZE[size][layout];
   const edge = layout === 'vertical' ? 140 : 56;
+  // Word-highlight only when a style is set AND word timings exist (ElevenLabs).
+  const karaoke = style.highlight && words && words.length > 0;
 
   const box: React.CSSProperties =
     theme === 'bar'
@@ -167,7 +228,11 @@ const Caption: React.FC<{text: string; layout: Layout; style: CaptionStyle}> = (
           ...box,
         }}
       >
-        {text}
+        {karaoke ? (
+          <WordRun words={words!} t={frame / FPS} mode={style.highlight!} accent={highlightColor} />
+        ) : (
+          text
+        )}
       </div>
     </div>
   );
@@ -468,7 +533,8 @@ const SceneView: React.FC<{
   captions: boolean;
   audio: boolean;
   captionStyle: CaptionStyle;
-}> = ({scene, prev, layout, captions, audio, captionStyle}) => {
+  brand: string;
+}> = ({scene, prev, layout, captions, audio, captionStyle, brand}) => {
   const content =
     scene.media === 'clip' ? <ClipScene scene={scene} /> : <StillScene scene={scene} prev={prev} />;
 
@@ -484,7 +550,15 @@ const SceneView: React.FC<{
       ) : (
         content
       )}
-      {captions ? <Caption text={scene.script} layout={layout} style={captionStyle} /> : null}
+      {captions ? (
+        <Caption
+          text={scene.script}
+          words={scene.words}
+          layout={layout}
+          style={captionStyle}
+          highlightColor={brand}
+        />
+      ) : null}
       {audio && scene.audio ? <Audio src={staticFile(scene.audio)} /> : null}
     </AbsoluteFill>
   );
@@ -542,6 +616,7 @@ export const Demo: React.FC<{
               captions={captions}
               audio={audio}
               captionStyle={captionStyle}
+              brand={brand}
             />
           </Sequence>
         );

@@ -91,9 +91,31 @@ const probeSeconds = (file) =>
     ]).toString(),
   );
 
+// Collapse ElevenLabs' per-character alignment into per-word [start,end] timings
+// (used by the renderer's karaoke word-highlight captions).
+const wordsFromAlignment = (al) => {
+  if (!al?.characters?.length) return null;
+  const {characters: ch, character_start_times_seconds: st, character_end_times_seconds: en} = al;
+  const words = [];
+  let cur = null;
+  for (let i = 0; i < ch.length; i++) {
+    if (/\s/.test(ch[i])) {
+      if (cur) (words.push(cur), (cur = null));
+      continue;
+    }
+    if (!cur) cur = {w: '', start: st[i], end: en[i]};
+    cur.w += ch[i];
+    cur.end = en[i];
+  }
+  if (cur) words.push(cur);
+  return words.length ? words : null;
+};
+
+// Uses the with-timestamps endpoint so we get word-level timings for free.
+// Returns the word track (or null if alignment is unavailable).
 const elevenlabs = async (text, outFile) => {
   const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`,
+    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/with-timestamps?output_format=mp3_44100_128`,
     {
       method: 'POST',
       headers: {'xi-api-key': API_KEY, 'Content-Type': 'application/json'},
@@ -107,9 +129,13 @@ const elevenlabs = async (text, outFile) => {
   if (!res.ok) {
     throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
   }
-  await writeFile(outFile, Buffer.from(await res.arrayBuffer()));
+  const data = await res.json();
+  await writeFile(outFile, Buffer.from(data.audio_base64, 'base64'));
+  return wordsFromAlignment(data.alignment);
 };
 
+// Piper/say don't emit word timings, so they return null: captions stay static
+// on the free voices (karaoke word-highlight is an ElevenLabs-only feature).
 const piper = (text, outFile) => {
   const wav = outFile.replace(/\.mp3$/, '.wav');
   const modelDir = path.join(os.homedir(), '.ultrademo', 'piper');
@@ -121,6 +147,7 @@ const piper = (text, outFile) => {
   );
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', wav, outFile]);
   rmSync(wav, {force: true});
+  return null;
 };
 
 const macSay = (text, outFile) => {
@@ -128,6 +155,7 @@ const macSay = (text, outFile) => {
   execFileSync('say', ['-o', aiff, text]);
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', aiff, outFile]);
   rmSync(aiff, {force: true});
+  return null;
 };
 
 const synth = {elevenlabs, piper, say: macSay}[engine];
@@ -136,18 +164,30 @@ for (const scene of storyboard.scenes) {
   const rel = `audio/${scene.id}.mp3`;
   const outFile = path.join(assetsDir, rel);
   const sigFile = `${outFile}.sig`;
+  const wordsFile = `${outFile}.words.json`; // per-word timings cached beside the audio
   const sig = createHash('sha256').update(`${voiceSig}\n${scene.script}`).digest('hex');
 
   const force = redo.has('all') || redo.has(scene.id);
   const cached =
     !force && existsSync(outFile) && existsSync(sigFile) && readFileSync(sigFile, 'utf8') === sig;
+
+  let words = null;
   if (!cached) {
-    await synth(scene.script, outFile);
+    words = await synth(scene.script, outFile);
     await writeFile(sigFile, sig);
+    if (words) await writeFile(wordsFile, JSON.stringify(words));
+    else rmSync(wordsFile, {force: true}); // drop stale timings if the voice changed
+  } else if (existsSync(wordsFile)) {
+    words = JSON.parse(readFileSync(wordsFile, 'utf8'));
   }
+
   scene.audio = rel;
   scene.audioDuration = probeSeconds(outFile);
-  console.log(`${scene.id}: ${scene.audioDuration.toFixed(2)}s${cached ? ' (cached)' : ''}`);
+  if (words) scene.words = words;
+  else delete scene.words;
+  console.log(
+    `${scene.id}: ${scene.audioDuration.toFixed(2)}s${cached ? ' (cached)' : ''}${words ? ' +words' : ''}`,
+  );
 }
 
 // atomic write: a crash mid-write must never truncate the storyboard
