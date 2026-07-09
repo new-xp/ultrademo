@@ -50,9 +50,23 @@ const contextOptions = {
 let browser = null;
 let context;
 if (flow.profile) {
+  // `channel: 'chrome'` in the flow runs the capture on the installed Google
+  // Chrome build - use it when the profile was created against a site whose
+  // sign-in rejects bundled Chromium (login.mjs prefers real Chrome too).
+  // `realKeychain: true` disables Playwright's mock keychain so the capture
+  // can decrypt cookies written by a MANUAL (non-automated) Chrome session on
+  // this profile - the escape hatch for sign-ins whose bot checks reject any
+  // automated browser: `open -na "Google Chrome" --args --user-data-dir=<
+  // .profiles/name>` , sign in by hand, quit Chrome CLEANLY (Cmd+Q - a kill
+  // loses the cookies), then capture with channel+realKeychain.
   context = await chromium.launchPersistentContext(
     path.resolve('.profiles', flow.profile),
-    {headless: true, ...contextOptions},
+    {
+      headless: true,
+      channel: flow.channel,
+      ...(flow.realKeychain ? {ignoreDefaultArgs: ['--use-mock-keychain']} : {}),
+      ...contextOptions,
+    },
   );
 } else {
   browser = await chromium.launch();

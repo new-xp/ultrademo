@@ -16,7 +16,16 @@ if (!profile || !url) {
 }
 
 const dir = path.resolve('.profiles', profile);
-const context = await chromium.launchPersistentContext(dir, {
+// Prefer the installed Google Chrome build: some sign-in flows (Linear's
+// human-verification step, Google SSO) reject Playwright's bundled Chromium
+// outright ("not secure" / "unable to verify you") but accept real Chrome
+// with the human completing the check. Falls back to bundled Chromium when
+// Chrome isn't installed.
+const launch = (opts) =>
+  chromium
+    .launchPersistentContext(dir, {channel: 'chrome', ...opts})
+    .catch(() => chromium.launchPersistentContext(dir, opts));
+const context = await launch({
   headless: false,
   viewport: {width: 1440, height: 900},
 });
@@ -32,7 +41,7 @@ await new Promise((resolve) => context.on('close', resolve));
 // and report what a capture would see. Catches sign-ins that silently failed
 // (e.g. Google SSO blocking automated browsers).
 console.log('Window closed - verifying the session headlessly...');
-const check = await chromium.launchPersistentContext(dir, {
+const check = await launch({
   headless: true,
   viewport: {width: 1920, height: 1080},
 });
