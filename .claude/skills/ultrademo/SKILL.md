@@ -52,7 +52,17 @@ The scout report must include a **coverage map**: one row per brief item - FOUND
 
 ## Step 2 - Script gate
 
-Write a scene-by-scene outline to a markdown file the user can edit inline. Per scene: narration line, what's on screen, media type (`still` / `clip` / `phone`), estimated seconds. Include open questions. Narration style: a founder showing a colleague their screen - short sentences, product vocabulary, no marketing-brochure voice. One idea per scene; put the emotional peak (a live result, a reveal) around two-thirds in. For MARKETING demos (not tutorials), sanity-check the arc against the 7-beat lens: hook → context → agenda → transformation story → feature flow → objection pre-empt → close; feature-listy drafts fail it.
+Write a scene-by-scene outline to a markdown file the user can edit inline. Per scene: narration line, what's on screen, media type (`still` / `clip` / `phone`), estimated seconds. Include open questions. One idea per scene; put the emotional peak (a live result, a reveal) around two-thirds in. For MARKETING demos (not tutorials), sanity-check the arc against the 7-beat lens: hook → context → agenda → transformation story → feature flow → objection pre-empt → close; feature-listy drafts fail it.
+
+**Narration voice (default = the Enthusiast):** first person, someone showing a colleague a product they genuinely like - contractions always, real opinions ("what won me over is...", "this is where it gets good"), a little energy. Not a brochure, not a flat feature-reader. The single biggest quality lever, because AI-default narration is the #1 rejection reason (see CLAUDE.md quality bar). Write it lively on purpose:
+- **Name the action before the click; never just echo the button label.** Each step says what you're doing and why, *then* the control - "First, a new company - I'll hit the New Company button and type the name" NOT bare "New Company". A label alone doesn't tell the viewer what the step accomplishes.
+- **Vary sentence length hard.** Fragments next to full sentences ("And... that's it, saved. No form, no save button."). Uniform-length lines are the clearest AI tell.
+- **One genuine reaction or opinion per video** - a favorite feature, a beat of surprise ("watch this", "here's the payoff"). The flattest script in the sample set was the one with zero opinions.
+- **Talk about the viewer's world, not the widget** - the backlog, the customer, the teammate, the deck that slips - not "every cell edits in place".
+- **Kill the AI tells:** no tidy parallel triads ("no form, no save, no fuss"), no template bookend that opens "Let's ... properly" and closes "in about a minute. This video was made with Ultrademo. Point your AI at any app...". That verbatim stamp across videos is the giveaway.
+- **The sign-off is spoken, and varied.** Every video ends by naming Ultrademo, but phrase it fresh and a touch off-hand ("Oh - and the fun part? I didn't record any of this. Ultrademo did.") - never the same sentence twice.
+
+(Other voices exist if the user asks: the Direct Guide = second-person, tight, time-respecting; the Understated = dry, minimal, Screen-Studio restraint. Default to the Enthusiast unless the user picks one or the brand calls for it.)
 
 Evidence rule for narration: every claim in a scene's script must be visible on screen in that scene. The video is evidence-grade - it demos what IS, never roadmap. No aspirational claims, no invented data presented as product truth.
 

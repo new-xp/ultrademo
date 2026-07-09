@@ -20,7 +20,7 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? '21m00Tcm4TlvDq8ikWAM'; // Rachel
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? 'UM3TOcm5kcELI84GFoAz'; // default demo voice
 const MODEL_ID = process.env.ELEVENLABS_MODEL_ID ?? 'eleven_multilingual_v2';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 const PIPER_MODEL = process.env.PIPER_MODEL ?? 'en_US-lessac-medium';
