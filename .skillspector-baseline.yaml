@@ -1,7 +1,9 @@
 # SkillSpector baseline — findings listed here are suppressed on future scans.
 # Edit 'reason' fields and add glob 'rules' as needed. See docs/SUPPRESSION.md.
 version: 1
-rules: []
+rules:
+- path: SECURITY-SCAN.md
+  reason: This report file documents the triaged findings and necessarily quotes the same keywords (.env, npx playwright, the keychain launch flag) that trigger them. Non-executable Markdown documentation.
 fingerprints:
 - hash: sha256:65e5a021b5847892
   rule_id: RP1
