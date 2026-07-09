@@ -117,6 +117,41 @@ const CAPTION_SIZE = {sm: {wide: 27, vertical: 33}, md: {wide: 34, vertical: 40}
 
 const WORD_GREY = '#9aa3b5';
 
+// UI literals: the script convention wraps exact on-screen strings (button
+// labels, statuses, typed values) in double quotes. Captions render those
+// spans accent-tinted with the quote marks stripped, so literals read as UI
+// terms instead of blending into the prose.
+const QUOTE_RE = /["“”]/g;
+
+type TextRun = {text: string; literal: boolean};
+
+const parseLiterals = (text: string): TextRun[] => {
+  const runs: TextRun[] = [];
+  const re = /"([^"]*)"|“([^”]*)”/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) runs.push({text: text.slice(last, m.index), literal: false});
+    runs.push({text: m[1] ?? m[2] ?? '', literal: true});
+    last = re.lastIndex;
+  }
+  if (last < text.length) runs.push({text: text.slice(last), literal: false});
+  return runs;
+};
+
+// Per-word literal flags for the karaoke run: quote chars ride on the word
+// tokens (whitespace-split), so scan tokens and toggle an in-quote state. An
+// odd quote count opens/closes a span; a token like `"Done".` self-closes.
+const literalFlags = (words: WordTiming[]): boolean[] => {
+  let inQuote = false;
+  return words.map((word) => {
+    const quotes = (word.w.match(QUOTE_RE) ?? []).length;
+    const literal = inQuote || quotes > 0;
+    if (quotes % 2 === 1) inQuote = !inQuote;
+    return literal;
+  });
+};
+
 // Readable-on-anything caption text: a dark outer stroke behind a light fill,
 // no background box. `paint-order: stroke` draws the stroke first so the fill
 // covers its inner half and glyphs stay crisp. Stroke scales with font size.
@@ -137,70 +172,78 @@ const WordRun: React.FC<{
   mode: 'dim' | 'pill' | 'wipe';
   accent: string;
   outline: React.CSSProperties;
-}> = ({words, t, mode, accent, outline}) => (
-  <>
-    {words.map((word, i) => {
-      const done = t >= word.end;
-      const active = t >= word.start && t < word.end;
-      const p = active ? Math.min(1, Math.max(0, (t - word.start) / Math.max(0.001, word.end - word.start))) : 0;
-      const sp = i > 0 ? ' ' : '';
+}> = ({words, t, mode, accent, outline}) => {
+  const flags = literalFlags(words);
+  return (
+    <>
+      {words.map((word, i) => {
+        const done = t >= word.end;
+        const active = t >= word.start && t < word.end;
+        const p = active ? Math.min(1, Math.max(0, (t - word.start) / Math.max(0.001, word.end - word.start))) : 0;
+        const sp = i > 0 ? ' ' : '';
+        // UI literals stay accent-tinted in their settled state (quote marks
+        // stripped from display; the tint replaces them visually).
+        const literal = flags[i];
+        const display = word.w.replace(QUOTE_RE, '');
+        const settled = literal ? accent : '#ffffff';
 
-      if (mode === 'pill') {
-        return (
-          <React.Fragment key={i}>
-            {sp}
-            <span
-              style={
-                active
-                  ? {background: accent, color: '#1a1200', borderRadius: 8, padding: '2px 8px', margin: '0 -4px', fontWeight: 800}
-                  : {color: '#ffffff', opacity: done ? 1 : 0.82, ...outline}
-              }
-            >
-              {word.w}
-            </span>
-          </React.Fragment>
-        );
-      }
-
-      if (mode === 'dim') {
-        return (
-          <React.Fragment key={i}>
-            {sp}
-            <span style={{color: '#ffffff', opacity: active ? 1 : done ? 0.9 : 0.42, fontWeight: active ? 800 : 700, ...outline}}>
-              {word.w}
-            </span>
-          </React.Fragment>
-        );
-      }
-
-      // wipe: base word (grey upcoming / white spoken) with an accent copy
-      // revealed left-to-right by clip-path as the word is spoken.
-      return (
-        <React.Fragment key={i}>
-          {sp}
-          <span style={{position: 'relative', display: 'inline-block', color: done ? '#ffffff' : WORD_GREY, ...outline}}>
-            {word.w}
-            {active ? (
+        if (mode === 'pill') {
+          return (
+            <React.Fragment key={i}>
+              {sp}
               <span
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  color: accent,
-                  whiteSpace: 'nowrap',
-                  clipPath: `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`,
-                  ...outline,
-                }}
+                style={
+                  active
+                    ? {background: accent, color: '#1a1200', borderRadius: 8, padding: '2px 8px', margin: '0 -4px', fontWeight: 800}
+                    : {color: settled, opacity: done ? 1 : 0.82, ...outline}
+                }
               >
-                {word.w}
+                {display}
               </span>
-            ) : null}
-          </span>
-        </React.Fragment>
-      );
-    })}
-  </>
-);
+            </React.Fragment>
+          );
+        }
+
+        if (mode === 'dim') {
+          return (
+            <React.Fragment key={i}>
+              {sp}
+              <span style={{color: settled, opacity: active ? 1 : done ? 0.9 : 0.42, fontWeight: active ? 800 : 700, ...outline}}>
+                {display}
+              </span>
+            </React.Fragment>
+          );
+        }
+
+        // wipe: base word (grey upcoming / white-or-accent spoken) with an
+        // accent copy revealed left-to-right by clip-path as the word is spoken.
+        return (
+          <React.Fragment key={i}>
+            {sp}
+            <span style={{position: 'relative', display: 'inline-block', color: done ? settled : WORD_GREY, ...outline}}>
+              {display}
+              {active ? (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    color: accent,
+                    whiteSpace: 'nowrap',
+                    clipPath: `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`,
+                    ...outline,
+                  }}
+                >
+                  {display}
+                </span>
+              ) : null}
+            </span>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+};
 
 const Caption: React.FC<{
   text: string;
@@ -279,7 +322,16 @@ const Caption: React.FC<{
         {karaoke ? (
           <WordRun words={words!} t={frame / FPS} mode={style.highlight!} accent={highlightColor} outline={outline} />
         ) : (
-          text
+          // Static captions still tint quoted UI literals (quote marks stripped).
+          parseLiterals(text).map((run, i) =>
+            run.literal ? (
+              <span key={i} style={{color: highlightColor, fontWeight: 800}}>
+                {run.text}
+              </span>
+            ) : (
+              <React.Fragment key={i}>{run.text}</React.Fragment>
+            ),
+          )
         )}
       </div>
     </div>

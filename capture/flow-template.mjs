@@ -74,7 +74,10 @@ export default {
       target: 'h1', // zoom/cursor anchor; also clicked to advance unless action:'none'
       action: 'none', // 'none' = observe only; omit = click target to advance state
       zoom: 1.2,
-      script: 'This is the narration line for this scene.',
+      // Wrap exact on-screen strings (button labels, statuses, typed values) in
+      // double quotes: captions tint them accent (quote marks stripped) and the
+      // voice lifts them slightly. Quotes are for UI literals only.
+      script: 'This is the narration line - click "New thing" to start.',
     },
 
     // CLIP scene: real screen recording of the actions in `record`.
