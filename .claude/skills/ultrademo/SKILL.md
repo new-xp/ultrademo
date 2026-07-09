@@ -13,11 +13,35 @@ You are driving the Ultrademo pipeline in this repo: Playwright capture → stor
 
 ## Step -1 - Bootstrap (only when the pipeline is missing)
 
-If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone. Offer to set the workspace up: clone https://github.com/new-xp/ultrademo into `ultrademo-workspace/` (or a location the user names), then `npm install`, `node_modules/.bin/playwright install chromium` (the Playwright version is pinned by the workspace lockfile), `npm run doctor`. Do not improvise a partial pipeline - the skill only drives the real one.
+If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone. Set the workspace up:
+1. Clone https://github.com/new-xp/ultrademo into `ultrademo-workspace/` (or a location the user names).
+2. `npm install`, then `node_modules/.bin/playwright install chromium` (the Playwright version is pinned by the workspace lockfile).
+3. **Create the `.env` file if it doesn't exist** - copy `.env.example` to `.env` (it's gitignored). This is where the narration key and app login go; never make the user discover later that they needed one.
+4. `npm run doctor` to verify the environment.
+
+Do not improvise a partial pipeline - the skill only drives the real one.
+
+**Never dead-end on an install summary.** The moment the workspace is ready, continue straight into intake (Step 0) and *ask the user what they want to make* - a fresh install with no next prompt strands them. Open with something concrete, e.g.: "Workspace is ready. What should we demo first? Send me the app URL and a line on what to show, and I'll scout it and draft a script." Then run the Round 1 questions below.
 
 ## Step 0 - Intake
 
-Collect (ask once, batched, only what's missing): app URL, test credentials, content brief (features to show, or accept a one-liner), target length (default: walkthrough ≈ 2-3 min; sizzle ≈ 60-90s), anything sensitive to blur, whether state mutations are allowed, and the app's color scheme. Run `npm run doctor` if this is the first video in this repo.
+Collect inputs in a few short, batched rounds - not one overwhelming wall of questions. Use structured questions (AskUserQuestion or the host's equivalent) so the user picks instead of typing. Only ask what's still missing or not discoverable. **Secrets and credentials never go in the chat - they go in files** (the user was uncomfortable pasting them, and it's the right security posture anyway).
+
+**Round 1 - the essentials (unblocks scouting; ask these together):**
+- **App URL** and the **brief** (what to show - a one-liner is fine).
+- **Target length** (default: walkthrough ~2-3 min; sizzle ~60-90s) and the app's **color scheme** (light/dark).
+- **Sign-in - never ask for credentials in chat.** The user signs in once via `npm run login -- <profile> <url>` inside the opened browser window; the session persists to `.profiles/` and captures reuse it. For a simple form login, the flow's `setup` can instead read `APP_EMAIL` / `APP_PASSWORD` from `.env`. Point the user to whichever fits; do not accept a password typed into the conversation.
+- **Narration voice:** check `.env` for `ELEVENLABS_API_KEY`. If it's missing, ask the user to add it to `.env` themselves (never paste a key in chat) or accept the free Piper/`say` fallback. `ELEVENLABS_VOICE_ID` is optional (a built-in demo voice is the default) and also lives in `.env`.
+
+**Round 2 - shape and polish (ride on what scouting found; ask at or before the script gate):**
+- **Where the video starts (start scene)** and the golden path - e.g. "open on the dashboard, then go to Campaigns, then...". Concrete now because you have the surface map.
+- **Intro / outro slides** (offer, opt-in): a title card with an app screenshot to open, a thank-you / "learn more" card with the brand URL to close. Ask whether they want them and whether to auto-write the copy or use theirs.
+- **Caption style:** default is a dark pill at the bottom; offer the alternatives (bar / minimal theme, size, top/bottom) - see Step 3.
+- **Output format:** default is the finalized MP4. Ask if they also want a vertical cut, a GIF, a no-captions version, or editor stems (separate clean video + narration audio + SRT).
+- **Redaction:** if capturing real data, offer in-page blur by pattern (emails, phone numbers) or selector (a customer column).
+- **Brand color** (for slides / branded captions) and **any specific instructions** (must-show moments, things to avoid).
+
+Phasing is deliberate: Round 1 is enough to start scouting; Round 2's questions become concrete once you've seen the app, so they don't feel abstract or overwhelming. Run `npm run doctor` if this is the first video in this workspace.
 
 Also ask for **context** (recommended, not required - it makes scouting faster and narration sharper):
 - a one-paragraph overview of the app and who uses it, and the *product's own name* for the feature in the brief;
@@ -83,6 +107,7 @@ npm run render -- <project> --vertical # 9:16 - see policy below
 npm run render -- <project> --gif      # GIF export
 npm run render -- <project> --no-captions   # opt-in: finalized video without burned-in captions
 npm run render -- <project> --stems         # opt-in: clean video + narration.mp3 + captions.srt for external editing (finalized video is still rendered alongside)
+npm run render -- <project> --caption-theme=bar --caption-size=lg   # try a caption style for one render
 ```
 
 Run those in that order every time: **capture rewrites `storyboard.json` without the audio fields**, so a render straight after a re-capture is silent. Re-running `tts` first costs nothing when narration is unchanged (per-line cache).
@@ -90,6 +115,8 @@ Run those in that order every time: **capture rewrites `storyboard.json` without
 Default deliverable is the finalized video. Offer `--no-captions` / `--stems` only when the user says they'll edit before publishing - do not produce them unasked.
 
 Two flow-level switches: a scene with `skip: true` is dropped at capture without deleting its definition (use it for honest-failure renegotiations - keep the scene and the reason in a comment). A flow-level `inject` string is added via `addInitScript` to every page - use it for on-camera HUD overlays (keycap callouts for keyboard-driven features, a live URL chip reading real `location.href` for URL-payoff moments, since Playwright records neither keystrokes nor the browser's URL bar). Overlays must only VISUALIZE real page state and events, never fabricate app UI - and must respect the caption band: the bottom ~200px of frame carries burned-in captions, so anchor HUD elements above it (proven layout: URL chip `top:90px`, keycaps `bottom:280px`).
+
+Captions and title cards are storyboard-level, set on the flow (carried straight into `storyboard.json` by capture): `caption: {theme, size, position}` where theme is `pill` (default dark chip) / `bar` (full-width lower third) / `minimal` (text with shadow, no background), size `sm|md|lg`, position `bottom|top`. The `--caption-*` render flags override the storyboard for a single render so you can try a look without re-capturing (the caption pill stays a readable dark by default - don't tint it the brand color, that hurts legibility; brand tints the slides). Intro/outro slides are opt-in via `intro: {title, subtitle}` (screenshot defaults to the first captured scene) and `outro: {title, subtitle, url}`; `brand: '#hex'` sets the slide accent. Each slide adds ~3s. The whole video already fades from black at the open and to black at the close, and scenes hard-cut between each other (no inter-scene fade - that dip to dark was a visible flash).
 
 Vertical policy: offer the 9:16 cut only when it earns its crop - the app has a mobile-responsive view (capture it at a mobile viewport for real vertical footage) or the content genuinely survives cropping. Cropping a dense desktop UI to 9:16 hides most of the screen and is usually not worth shipping; ask the user before producing it. Voice tuning: `ELEVENLABS_STABILITY` (default 0.45; raise toward 0.6+ if narration prosody sounds erratic) and `ELEVENLABS_VOICE_ID` are env-tunable, and changed settings bust the per-line cache automatically.
 

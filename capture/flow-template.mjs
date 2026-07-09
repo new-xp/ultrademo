@@ -9,8 +9,11 @@
 
 const BASE = 'http://localhost:3000'; // NOTE: some frameworks (Next.js server
 // actions) fail origin checks on 127.0.0.1 - prefer the localhost hostname.
-const EMAIL = 'demo@example.com';
-const PASSWORD = 'change-me';
+// Credentials come from .env (run: cp .env.example .env), never hardcoded here.
+// For SSO / human-check logins, drop `setup` and use `npm run login` instead;
+// the capture then reuses that session via `profile: '<name>'` below.
+const EMAIL = process.env.APP_EMAIL ?? 'demo@example.com';
+const PASSWORD = process.env.APP_PASSWORD ?? 'change-me';
 
 // Optional: blur sensitive content in-page (works in stills AND clips, and
 // survives navigation/scrolling). Adapt the regex/selectors to your app.

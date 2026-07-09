@@ -2,5 +2,6 @@ node_modules
 projects/*/assets/
 projects/*/out/
 .env*
+!.env.example
 .profiles/
 .DS_Store
