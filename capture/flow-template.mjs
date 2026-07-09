@@ -75,8 +75,9 @@ export default {
       action: 'none', // 'none' = observe only; omit = click target to advance state
       zoom: 1.2,
       // Wrap exact on-screen strings (button labels, statuses, typed values) in
-      // double quotes: captions tint them accent (quote marks stripped) and the
-      // voice lifts them slightly. Quotes are for UI literals only.
+      // double quotes: captions tint them the literal color (default sky blue,
+      // quote marks stripped) and the voice lifts them slightly. Quotes are for
+      // UI literals only.
       script: 'This is the narration line - click "New thing" to start.',
     },
 

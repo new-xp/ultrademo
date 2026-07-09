@@ -34,7 +34,12 @@ export type CaptionStyle = {
   // Karaoke word-highlight (needs per-word timings -> ElevenLabs voice only;
   // free voices fall back to the static caption). Off unless set.
   highlight?: 'dim' | 'pill' | 'wipe';
+  // Tint for double-quoted UI literals in the script. Deliberately NOT the
+  // karaoke accent - a settled literal must not read as the active word.
+  literalColor?: string;
 };
+
+const LITERAL_DEFAULT = '#7dd3fc'; // sky - reads as "interactive UI element"
 
 export type WordTiming = {w: string; start: number; end: number};
 
@@ -171,8 +176,9 @@ const WordRun: React.FC<{
   t: number;
   mode: 'dim' | 'pill' | 'wipe';
   accent: string;
+  literalColor: string;
   outline: React.CSSProperties;
-}> = ({words, t, mode, accent, outline}) => {
+}> = ({words, t, mode, accent, literalColor, outline}) => {
   const flags = literalFlags(words);
   return (
     <>
@@ -181,11 +187,13 @@ const WordRun: React.FC<{
         const active = t >= word.start && t < word.end;
         const p = active ? Math.min(1, Math.max(0, (t - word.start) / Math.max(0.001, word.end - word.start))) : 0;
         const sp = i > 0 ? ' ' : '';
-        // UI literals stay accent-tinted in their settled state (quote marks
-        // stripped from display; the tint replaces them visually).
+        // UI literals keep their own tint in every state (quote marks stripped
+        // from display; the tint replaces them visually). The wipe also sweeps
+        // literals in literalColor so they never read as the accent.
         const literal = flags[i];
         const display = word.w.replace(QUOTE_RE, '');
-        const settled = literal ? accent : '#ffffff';
+        const settled = literal ? literalColor : '#ffffff';
+        const sweep = literal ? literalColor : accent;
 
         if (mode === 'pill') {
           return (
@@ -228,7 +236,7 @@ const WordRun: React.FC<{
                     position: 'absolute',
                     left: 0,
                     top: 0,
-                    color: accent,
+                    color: sweep,
                     whiteSpace: 'nowrap',
                     clipPath: `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`,
                     ...outline,
@@ -262,6 +270,7 @@ const Caption: React.FC<{
   const fontSize = CAPTION_SIZE[size][layout];
   const edge = layout === 'vertical' ? 140 : 56;
   const outline = outlineStyle(fontSize);
+  const literalColor = style.literalColor ?? LITERAL_DEFAULT;
   // Word-highlight only when a style is set AND word timings exist (ElevenLabs).
   const karaoke = style.highlight && words && words.length > 0;
 
@@ -320,12 +329,19 @@ const Caption: React.FC<{
         }}
       >
         {karaoke ? (
-          <WordRun words={words!} t={frame / FPS} mode={style.highlight!} accent={highlightColor} outline={outline} />
+          <WordRun
+            words={words!}
+            t={frame / FPS}
+            mode={style.highlight!}
+            accent={highlightColor}
+            literalColor={literalColor}
+            outline={outline}
+          />
         ) : (
           // Static captions still tint quoted UI literals (quote marks stripped).
           parseLiterals(text).map((run, i) =>
             run.literal ? (
-              <span key={i} style={{color: highlightColor, fontWeight: 800}}>
+              <span key={i} style={{color: literalColor, fontWeight: 800}}>
                 {run.text}
               </span>
             ) : (

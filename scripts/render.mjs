@@ -3,6 +3,7 @@
 // Usage: npm run render -- <project> [--vertical] [--gif] [--no-captions] [--stems]
 //                                    [--caption-theme=outline|pill|bar] [--caption-size=sm|md|lg]
 //                                    [--caption-position=bottom|top] [--caption-highlight=dim|pill|wipe]
+//                                    [--caption-literal-color=#hex]
 //
 // Default output is the FINALIZED video (captions burned in, narration mixed).
 // Caption look is set per-storyboard (storyboard.caption); the --caption-* flags
@@ -35,6 +36,7 @@ const captionOverride = {
   size: flagVal('caption-size'),
   position: flagVal('caption-position'),
   highlight: flagVal('caption-highlight'), // dim|pill|wipe (ElevenLabs voices only)
+  literalColor: flagVal('caption-literal-color'), // tint for double-quoted UI literals (default sky #7dd3fc)
 };
 const caption = Object.fromEntries(Object.entries(captionOverride).filter(([, v]) => v));
 
