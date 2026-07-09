@@ -19,21 +19,29 @@ Ultrademo is a capture-and-render pipeline plus a Claude Code skill that drives 
 - Chromium for Playwright (`npx playwright install chromium`)
 - A voice, best-first: an [ElevenLabs](https://elevenlabs.io) API key in `.env` (premium) → [Piper](https://github.com/rhasspy/piper) (`pip install piper-tts` - free, offline, all platforms) → macOS `say` (zero-install placeholder). Unchanged narration lines are cached, so re-renders never re-bill your ElevenLabs quota.
 
-## Quickstart
+## Install
+
+**Recommended - install the skill:**
 
 ```bash
-git clone <this repo> ultrademo-workspace && cd ultrademo-workspace
+npx skills add new-xp/ultrademo
+```
+
+This adds the `ultrademo` skill to your coding agent (Claude Code, Codex, Cursor, OpenCode, Windsurf, ...). Then open your project and ask for a demo video: on first run the skill provisions the pipeline for you - clones this repo into `ultrademo-workspace/`, runs `npm install` and `playwright install`, creates `.env`, and verifies your environment - then scouts your app, drafts a scene-by-scene script for your sign-off, captures, and renders.
+
+Built and tested with Claude Code; any agent that reads `AGENTS.md` can follow the same playbook. Gemini CLI looks for `GEMINI.md` by default, so set its `contextFileName` to `AGENTS.md` (or copy the file).
+
+**Or set up the workspace yourself** (no skill CLI, or you just want the pipeline):
+
+```bash
+git clone https://github.com/new-xp/ultrademo ultrademo-workspace && cd ultrademo-workspace
 npm install
 npx playwright install chromium
 npm run doctor                 # verifies your environment
-
-# optional, for real narration:
-echo 'ELEVENLABS_API_KEY=sk_...' > .env
+cp .env.example .env           # optional: add ELEVENLABS_API_KEY for premium narration
 ```
 
-**With Claude Code (recommended):** the repo ships the `ultrademo` skill. Open the folder in Claude Code and ask for a demo video - Claude scouts your app, drafts a scene-by-scene script for your sign-off, writes the flow, captures, and renders.
-
-**With another coding agent (Codex, OpenCode, Cursor, ...):** the repo ships an `AGENTS.md` that points your agent at the same playbook. Built and tested with Claude Code; any capable agent that reads AGENTS.md can follow it. Gemini CLI users: it looks for GEMINI.md by default, so set its `contextFileName` to AGENTS.md (or copy the file).
+With the folder open in Claude Code (or another AGENTS.md-aware agent), just ask for a demo video. Prefer to drive it by hand? See **Manually** below.
 
 **Manually:** copy `capture/flow-template.mjs` to `projects/<app>-<topic>-<date-time>/flow.mjs`, edit the scenes, then:
 
