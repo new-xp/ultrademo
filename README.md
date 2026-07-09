@@ -1,6 +1,6 @@
 # Ultrademo
 
-Point an AI at your web app and get a narrated demo video. Everything runs on **your** machine: your credentials, your data, and your renders never leave it.
+Point your AI Agent at your web app and get a narrated demo video. Everything runs on **your** machine: your credentials, your data, and your renders never leave it.
 
 ## See it work
 
