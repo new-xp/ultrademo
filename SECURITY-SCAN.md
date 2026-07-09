@@ -15,11 +15,11 @@ Two findings were real documentation-clarity issues and were **fixed in the sour
 
 ## Triaged findings (all false positives)
 
-The raw scan surfaced 34 findings across 8 rule categories. Each is a heuristic match on legitimate code:
+The raw scan surfaced 33 findings across 8 rule categories. Each is a heuristic match on legitimate code:
 
 | Rule | Category | Sev | Count | Why it is a false positive |
 |------|----------|-----|-------|-----------------------------|
-| PE3 | Privilege Escalation | HIGH | 11 | Matches on `.env` / `ELEVENLABS_API_KEY` / `APP_PASSWORD` **setup instructions** (which tell users where to place *their own* values), the `--use-mock-keychain` Playwright launch flag, and a password typed into the **target app's own login form**. No credential files are read or transmitted. |
+| PE3 | Privilege Escalation | HIGH | 10 | Matches on `.env` / `ELEVENLABS_API_KEY` / `APP_PASSWORD` **setup instructions** (which tell users where to place *their own* values), the `--use-mock-keychain` Playwright launch flag, and a password typed into the **target app's own login form**. No credential files are read or transmitted. |
 | TM1 | Tool Misuse | HIGH | 3 | `capture.mjs` imports `rm` from `node:fs/promises` to clean the tool's own scratch/output directories, and setup helpers read app credentials from environment variables. Not a shell exec, dangerous glob, or forced flag. |
 | AS3 | Agent Snooping | MEDIUM | 7 | Relative-path cross-links between the two first-party skills this repo ships together (`ultrademo` and `ultrademo-rerun`) plus `AGENTS.md` pointing agents at that playbook. No third-party or peer-skill files are read. |
 | RP1 | MCP Rug Pull | MEDIUM | 4 | `npx playwright install chromium` is an npm dev-dependency setup step, not a remote MCP server. Playwright is pinned in `package.json` and locked exactly by the committed `package-lock.json`. |

@@ -13,7 +13,7 @@ fingerprints:
   rule_id: RP1
   file: README.md
   reason: False positive. `npx playwright install chromium` is an npm dev-dependency setup step, not a remote MCP server. Playwright is pinned in package.json and locked exactly by the committed package-lock.json.
-- hash: sha256:f4142e54b8967425
+- hash: sha256:2f788bf9ce2dc51f
   rule_id: RP1
   file: SECURITY-SCAN.md
   reason: False positive. `npx playwright install chromium` is an npm dev-dependency setup step, not a remote MCP server. Playwright is pinned in package.json and locked exactly by the committed package-lock.json.
@@ -41,15 +41,15 @@ fingerprints:
   rule_id: AS3
   file: AGENTS.md
   reason: False positive. Relative-path cross-links between the two first-party skills this repo ships together (ultrademo and ultrademo-rerun) plus AGENTS.md pointing agents at that playbook. No third-party or peer-skill files are read.
-- hash: sha256:2c1b0833af0a0a5d
+- hash: sha256:54caa15d4baaa2da
   rule_id: AS3
   file: SECURITY-SCAN.md
   reason: False positive. Relative-path cross-links between the two first-party skills this repo ships together (ultrademo and ultrademo-rerun) plus AGENTS.md pointing agents at that playbook. No third-party or peer-skill files are read.
-- hash: sha256:2c1b0833af0a0a5d
+- hash: sha256:54caa15d4baaa2da
   rule_id: AS3
   file: SECURITY-SCAN.md
   reason: False positive. Relative-path cross-links between the two first-party skills this repo ships together (ultrademo and ultrademo-rerun) plus AGENTS.md pointing agents at that playbook. No third-party or peer-skill files are read.
-- hash: sha256:2a58cc3a0378fffd
+- hash: sha256:2ab5de91774dd0f4
   rule_id: E1
   file: tts/tts.mjs
   reason: False positive. tts.mjs posts narration text to the documented ElevenLabs text-to-speech endpoint using the user's own opt-in API key. This is the tool's core function, not data exfiltration.
@@ -65,10 +65,6 @@ fingerprints:
   rule_id: EA1
   file: SECURITY-SCAN.md
   reason: False positive. Matches documentation/automation describing the tool's own stated purpose (driving a browser to capture a demo). No agency beyond the documented capture-and-render workflow.
-- hash: sha256:feab7ddfe7548090
-  rule_id: PE3
-  file: SECURITY-SCAN.md
-  reason: False positive. Matches on .env / ELEVENLABS_API_KEY / APP_PASSWORD setup instructions (which tell users where to place their own values), the `--use-mock-keychain` Playwright launch flag, and a password typed into the target app's own login form. No credential files are read or transmitted.
 - hash: sha256:de240ff34a478cd4
   rule_id: PE3
   file: capture/capture.mjs
