@@ -11,7 +11,7 @@ You are driving the Ultrademo pipeline in this repo: Playwright capture → stor
 1. **Script gate** - no capture happens before the user signs off the scene-by-scene outline.
 2. **Review gate** - the first render gets scene-level review before you call it done.
 
-## Step -1 - Bootstrap (only when the pipeline is missing)
+## Step -1 - Bootstrap or refresh the workspace
 
 If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone. Set the workspace up:
 1. Clone https://github.com/new-xp/ultrademo into `ultrademo-workspace/` (or a location the user names).
@@ -20,6 +20,8 @@ If the current folder does not contain the Ultrademo pipeline (`capture/capture.
 4. `npm run doctor` to verify the environment.
 
 Do not improvise a partial pipeline - the skill only drives the real one.
+
+**If the pipeline is already there, check it's fresh** (skill instructions and pipeline code version together - stale clones miss features these instructions assume). At the start of a session, if the workspace is a clone of the upstream repo: `git fetch --quiet` (a few seconds; offline or a private fork → skip silently and continue), then compare `git rev-list HEAD..@{u} --count`. If behind, tell the user what's new (`git log HEAD..@{u} --oneline`) and **offer** to `git pull` - never pull silently, their workspace may carry local edits (uncommitted changes → offer `git stash` first or leave it; their call). After a pull, re-run `npm install` if `package-lock.json` changed. If the skill was installed standalone via the skills CLI, also remind the user that `npx skills update` refreshes the installed skill copy to match; when the workspace folder itself is open in the agent, the pull already updated the skill in `.claude/skills/`.
 
 **Never dead-end on an install summary.** The moment the workspace is ready, continue straight into intake (Step 0) and *ask the user what they want to make* - a fresh install with no next prompt strands them. Open with something concrete, e.g.: "Workspace is ready. What should we demo first? Send me the app URL and a line on what to show, and I'll scout it and draft a script." Then run the Round 1 questions below.
 

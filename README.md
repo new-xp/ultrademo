@@ -43,6 +43,8 @@ cp .env.example .env           # optional: add ELEVENLABS_API_KEY for premium na
 
 With the folder open in Claude Code (or another AGENTS.md-aware agent), just ask for a demo video. Prefer to drive it by hand? See **Manually** below.
 
+**Updating:** `git pull` in the workspace picks up pipeline and skill improvements (the skill checks for this itself and offers the pull when the clone falls behind); run `npm install` after if dependencies changed. If you installed the skill standalone via the skills CLI, `npx skills update` refreshes the installed skill copy to match.
+
 **Manually:** copy `capture/flow-template.mjs` to `projects/<app>-<topic>-<date-time>/flow.mjs`, edit the scenes, then:
 
 ```bash

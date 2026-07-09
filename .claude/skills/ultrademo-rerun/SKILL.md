@@ -16,6 +16,7 @@ List `projects/*/` (each real project contains a `flow.mjs`). Then:
 
 ## 2. Pre-flight (cheap checks before any capture)
 
+- **Pipeline fresh?** Run the main playbook's workspace freshness check (Step -1): `git fetch`, and if the clone is behind upstream, offer to pull before re-capturing - a re-run is exactly when renderer/caption improvements should land. Never pull silently; offline → skip and continue.
 - **Auth still alive?** If the flow uses a `profile`, verify the saved session headlessly (load the flow's URL, screenshot, look for a login wall). Dead session → have the user run `npm run login -- <profile> <url>` before proceeding.
 - **Codebase available?** If the app's repo is accessible, read the diff since the last capture (the previous render's timestamp is your anchor). It usually names the changed surfaces and broken selectors up front - tell the user which scenes you expect to be affected before spending a capture run.
 - **State reset:** if `reset.mjs` exists, it runs first. If the flow mutates state and there is no reset recipe, stop and write one (per the main playbook).
