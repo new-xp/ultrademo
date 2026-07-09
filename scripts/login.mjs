@@ -16,8 +16,8 @@ if (!profile || !url) {
 }
 
 const dir = path.resolve('.profiles', profile);
-// Prefer the installed Google Chrome build: some sign-in flows (Linear's
-// human-verification step, Google SSO) reject Playwright's bundled Chromium
+// Prefer the installed Google Chrome build: some sign-in flows (human-verification
+// steps, Google SSO) reject Playwright's bundled Chromium
 // outright ("not secure" / "unable to verify you") but accept real Chrome
 // with the human completing the check. Falls back to bundled Chromium when
 // Chrome isn't installed.
