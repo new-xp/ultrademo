@@ -1,7 +1,7 @@
 // Render helper: picks the composition, flags, and output name for a project.
 //
 // Usage: npm run render -- <project> [--vertical] [--gif] [--no-captions] [--stems]
-//                                    [--caption-theme=pill|bar|minimal] [--caption-size=sm|md|lg]
+//                                    [--caption-theme=outline|pill|bar] [--caption-size=sm|md|lg]
 //                                    [--caption-position=bottom|top] [--caption-highlight=dim|pill|wipe]
 //
 // Default output is the FINALIZED video (captions burned in, narration mixed).

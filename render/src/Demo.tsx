@@ -23,10 +23,11 @@ export type Layout = 'wide' | 'vertical';
 
 export type CursorEvent = {t: number; type: 'move' | 'click'; x: number; y: number};
 
-// Caption presentation. Defaults to the dark pill; brand/theme overridable per
-// storyboard (storyboard.caption) or per render (--caption-* flags -> props).
+// Caption presentation. Defaults to outlined text (no box, readable on any
+// screen); brand/theme overridable per storyboard (storyboard.caption) or per
+// render (--caption-* flags -> props).
 export type CaptionStyle = {
-  theme?: 'pill' | 'bar' | 'minimal'; // rounded chip / full-width lower third / text-only
+  theme?: 'outline' | 'pill' | 'bar' | 'minimal'; // outlined text (default) / chip / lower third / (minimal = outline)
   size?: 'sm' | 'md' | 'lg';
   position?: 'bottom' | 'top';
   accent?: string; // background/bar tint (hex)
@@ -114,46 +115,87 @@ const Cursor: React.FC<{scale: number}> = ({scale}) => (
 
 const CAPTION_SIZE = {sm: {wide: 27, vertical: 33}, md: {wide: 34, vertical: 40}, lg: {wide: 42, vertical: 50}};
 
-const WORD_GREY = '#8b93a6';
+const WORD_GREY = '#9aa3b5';
+
+// Readable-on-anything caption text: a dark outer stroke behind a light fill,
+// no background box. `paint-order: stroke` draws the stroke first so the fill
+// covers its inner half and glyphs stay crisp. Stroke scales with font size.
+const outlineStyle = (fontSize: number): React.CSSProperties => ({
+  WebkitTextStroke: `${Math.max(2, fontSize * 0.06).toFixed(1)}px rgba(8,12,20,0.94)`,
+  paintOrder: 'stroke fill',
+  textShadow: '0 2px 10px rgba(0,0,0,0.55), 0 0 4px rgba(0,0,0,0.5)',
+});
 
 // Karaoke word run: each word styled by whether it's been spoken, is being
 // spoken now (t within [start,end)), or is upcoming. `t` is audio-relative
-// seconds (audio starts at the scene's frame 0).
-const WordRun: React.FC<{words: WordTiming[]; t: number; mode: 'dim' | 'pill' | 'wipe'; accent: string}> = ({
-  words,
-  t,
-  mode,
-  accent,
-}) => (
+// seconds (audio starts at the scene's frame 0). Words render as real glyphs in
+// every mode - the wipe sweeps an accent-colored copy over the base via clip-path
+// (never a solid fill rectangle), so the text stays legible while it fills.
+const WordRun: React.FC<{
+  words: WordTiming[];
+  t: number;
+  mode: 'dim' | 'pill' | 'wipe';
+  accent: string;
+  outline: React.CSSProperties;
+}> = ({words, t, mode, accent, outline}) => (
   <>
     {words.map((word, i) => {
       const done = t >= word.end;
       const active = t >= word.start && t < word.end;
       const p = active ? Math.min(1, Math.max(0, (t - word.start) / Math.max(0.001, word.end - word.start))) : 0;
-      let st: React.CSSProperties = {};
-      if (mode === 'dim') {
-        st = {opacity: active ? 1 : 0.4, fontWeight: active ? 700 : 400};
-      } else if (mode === 'pill') {
-        st = active
-          ? {background: accent, color: '#1a1200', borderRadius: 8, padding: '2px 6px', margin: '0 -6px', fontWeight: 600}
-          : {};
-      } else {
-        st = done
-          ? {color: '#ffffff'}
-          : active
-            ? {
-                background: `linear-gradient(90deg, ${accent} ${p * 100}%, ${WORD_GREY} ${p * 100}%)`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontWeight: 600,
+      const sp = i > 0 ? ' ' : '';
+
+      if (mode === 'pill') {
+        return (
+          <React.Fragment key={i}>
+            {sp}
+            <span
+              style={
+                active
+                  ? {background: accent, color: '#1a1200', borderRadius: 8, padding: '2px 8px', margin: '0 -4px', fontWeight: 800}
+                  : {color: '#ffffff', opacity: done ? 1 : 0.82, ...outline}
               }
-            : {color: WORD_GREY};
+            >
+              {word.w}
+            </span>
+          </React.Fragment>
+        );
       }
+
+      if (mode === 'dim') {
+        return (
+          <React.Fragment key={i}>
+            {sp}
+            <span style={{color: '#ffffff', opacity: active ? 1 : done ? 0.9 : 0.42, fontWeight: active ? 800 : 700, ...outline}}>
+              {word.w}
+            </span>
+          </React.Fragment>
+        );
+      }
+
+      // wipe: base word (grey upcoming / white spoken) with an accent copy
+      // revealed left-to-right by clip-path as the word is spoken.
       return (
         <React.Fragment key={i}>
-          {i > 0 ? ' ' : ''}
-          <span style={st}>{word.w}</span>
+          {sp}
+          <span style={{position: 'relative', display: 'inline-block', color: done ? '#ffffff' : WORD_GREY, ...outline}}>
+            {word.w}
+            {active ? (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  color: accent,
+                  whiteSpace: 'nowrap',
+                  clipPath: `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`,
+                  ...outline,
+                }}
+              >
+                {word.w}
+              </span>
+            ) : null}
+          </span>
         </React.Fragment>
       );
     })}
@@ -168,12 +210,15 @@ const Caption: React.FC<{
   highlightColor: string;
 }> = ({text, words, layout, style, highlightColor}) => {
   const frame = useCurrentFrame();
-  const theme = style.theme ?? 'pill';
+  // Default is outlined text with no background box (readable on any screen).
+  // 'pill' (dark chip) and 'bar' (full-width lower third) are opt-in.
+  const theme = style.theme ?? 'outline';
   const size = style.size ?? 'md';
   const position = style.position ?? 'bottom';
   const accent = style.accent ?? 'rgba(15,23,42,0.82)';
   const fontSize = CAPTION_SIZE[size][layout];
   const edge = layout === 'vertical' ? 140 : 56;
+  const outline = outlineStyle(fontSize);
   // Word-highlight only when a style is set AND word timings exist (ElevenLabs).
   const karaoke = style.highlight && words && words.length > 0;
 
@@ -187,19 +232,10 @@ const Caption: React.FC<{
           fontSize,
           lineHeight: 1.35,
           textAlign: 'center',
+          fontWeight: 700,
         }
-      : theme === 'minimal'
+      : theme === 'pill'
         ? {
-            maxWidth: layout === 'vertical' ? 940 : 1500,
-            color: '#ffffff',
-            padding: '0 40px',
-            fontSize,
-            lineHeight: 1.35,
-            textAlign: 'center',
-            textShadow: '0 2px 10px rgba(0,0,0,0.85), 0 0 3px rgba(0,0,0,0.9)',
-            fontWeight: 600,
-          }
-        : {
             maxWidth: layout === 'vertical' ? 940 : 1400,
             background: accent.startsWith('#') ? hexToRgba(accent, 0.82) : accent,
             color: '#f8fafc',
@@ -208,6 +244,18 @@ const Caption: React.FC<{
             fontSize,
             lineHeight: 1.35,
             textAlign: 'center',
+            fontWeight: 700,
+          }
+        : {
+            // 'outline' / 'minimal': no box, light fill + dark stroke.
+            maxWidth: layout === 'vertical' ? 960 : 1560,
+            color: '#ffffff',
+            padding: '0 40px',
+            fontSize,
+            lineHeight: 1.4,
+            textAlign: 'center',
+            fontWeight: 700,
+            ...outline,
           };
 
   return (
@@ -229,7 +277,7 @@ const Caption: React.FC<{
         }}
       >
         {karaoke ? (
-          <WordRun words={words!} t={frame / FPS} mode={style.highlight!} accent={highlightColor} />
+          <WordRun words={words!} t={frame / FPS} mode={style.highlight!} accent={highlightColor} outline={outline} />
         ) : (
           text
         )}
