@@ -38,7 +38,7 @@ claude               # or your agent of choice
 > make a demo video of this app
 ```
 
-On first run the skill provisions the pipeline for you - clones this repo into `ultrademo-workspace/`, runs `npm install` and `playwright install`, creates `.env`, and verifies your environment - then scouts your app, drafts a scene-by-scene script for your sign-off, captures, and renders.
+On first run the skill provisions the pipeline for you - clones this repo into `ultrademo-workspace/`, runs `npm ci` (lockfile-exact) and `playwright install`, creates `.env`, and verifies your environment - then scouts your app, drafts a scene-by-scene script for your sign-off, captures, and renders.
 
 **Skill not showing up?** (`/ultrademo` unknown, or your agent doesn't list it): it almost certainly landed in `.agents/skills/` from the "universal" picker choice. Re-run the install with your agent named explicitly (`npx skills add new-xp/ultrademo -a claude-code`), or move the `ultrademo` and `ultrademo-rerun` folders into `.claude/skills/` yourself.
 
@@ -48,7 +48,7 @@ Built and tested with Claude Code; any agent that reads `AGENTS.md` can follow t
 
 ```bash
 git clone https://github.com/new-xp/ultrademo ultrademo-workspace && cd ultrademo-workspace
-npm install
+npm ci
 npx playwright install chromium
 npm run doctor                 # verifies your environment
 cp .env.example .env           # optional: add ELEVENLABS_API_KEY for premium narration
@@ -56,7 +56,7 @@ cp .env.example .env           # optional: add ELEVENLABS_API_KEY for premium na
 
 With the folder open in Claude Code (or another AGENTS.md-aware agent), just ask for a demo video. Prefer to drive it by hand? See **Manually** below.
 
-**Updating:** `git pull` in the workspace picks up pipeline and skill improvements (the skill checks for this itself and offers the pull when the clone falls behind); run `npm install` after if dependencies changed. If you installed the skill standalone via the skills CLI, `npx skills update` refreshes the installed skill copy to match.
+**Updating:** `git pull` in the workspace picks up pipeline and skill improvements (the skill checks for this itself and offers the pull when the clone falls behind); run `npm ci` after if dependencies changed. If you installed the skill standalone via the skills CLI, `npx skills update` refreshes the installed skill copy to match.
 
 **Manually:** copy `capture/flow-template.mjs` to `projects/<app>-<topic>-<date-time>/flow.mjs`, edit the scenes, then:
 

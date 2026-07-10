@@ -15,15 +15,22 @@ You are driving the Ultrademo pipeline in this repo: Playwright capture → stor
 
 ## Step -1 - Bootstrap or refresh the workspace
 
-If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone. Set the workspace up:
-1. Clone https://github.com/new-xp/ultrademo into `ultrademo-workspace/` (or a location the user names).
-2. `npm install`, then `node_modules/.bin/playwright install chromium` (the Playwright version is pinned by the workspace lockfile).
-3. **Create the `.env` file if it doesn't exist** - copy `.env.example` to `.env` (it's gitignored). This is where the narration key and app login go; never make the user discover later that they needed one. Tell the user its **absolute path** on its own line (clickable) and offer to open it in an editor window for them (`open`/`start`/`xdg-open`/`code`) - don't make them hunt for a dotfile.
-4. `npm run doctor` to verify the environment.
+If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone and needs its workspace. The workspace is not a third-party download: it is the **same public Apache-2.0 repository this skill is distributed from** (`new-xp/ultrademo`, the same name the user just typed into the install command) - one codebase, skill and pipeline versioned together. Its dependencies resolve strictly from the committed `package-lock.json`, and no step pipes remote content to a shell. Setup, in `ultrademo-workspace/` or a location the user names:
+
+```bash
+git clone https://github.com/new-xp/ultrademo ultrademo-workspace
+cd ultrademo-workspace
+npm ci                                          # lockfile-exact dependency install
+node_modules/.bin/playwright install chromium   # browser version pinned via the lockfile'd Playwright
+```
+
+Then:
+1. **Create the `.env` file if it doesn't exist** - copy `.env.example` to `.env` (it's gitignored). This is where the narration key and app login go; never make the user discover later that they needed one. Tell the user its **absolute path** on its own line (clickable) and offer to open it in an editor window for them (`open`/`start`/`xdg-open`/`code`) - don't make them hunt for a dotfile.
+2. `npm run doctor` to verify the environment.
 
 Do not improvise a partial pipeline - the skill only drives the real one.
 
-**If the pipeline is already there, check it's fresh** (skill instructions and pipeline code version together - stale clones miss features these instructions assume). At the start of a session, if the workspace is a clone of the upstream repo: `git fetch --quiet` (a few seconds; offline or a private fork → skip silently and continue), then compare `git rev-list HEAD..@{u} --count`. If behind, tell the user what's new (`git log HEAD..@{u} --oneline`) and **offer** to `git pull` - never pull silently, their workspace may carry local edits (uncommitted changes → offer `git stash` first or leave it; their call). After a pull, re-run `npm install` if `package-lock.json` changed. If the skill was installed standalone via the skills CLI, also remind the user that `npx skills update` refreshes the installed skill copy to match; when the workspace folder itself is open in the agent, the pull already updated the skill in `.claude/skills/`.
+**If the pipeline is already there, check it's fresh** (skill instructions and pipeline code version together - stale clones miss features these instructions assume). At the start of a session, if the workspace is a clone of the upstream repo: `git fetch --quiet` (a few seconds; offline or a private fork → skip silently and continue), then compare `git rev-list HEAD..@{u} --count`. If behind, tell the user what's new (`git log HEAD..@{u} --oneline`) and **offer** to `git pull` - never pull silently, their workspace may carry local edits (uncommitted changes → offer `git stash` first or leave it; their call). After a pull, re-run `npm ci` if `package-lock.json` changed. If the skill was installed standalone via the skills CLI, also remind the user that `npx skills update` refreshes the installed skill copy to match; when the workspace folder itself is open in the agent, the pull already updated the skill in `.claude/skills/`.
 
 **Never dead-end on an install summary.** The moment the workspace is ready, continue straight into intake (Step 0) and *ask the user what they want to make* - a fresh install with no next prompt strands them. Open with something concrete, e.g.: "Workspace is ready. What should we demo first? Send me the app URL and a line on what to show, and I'll scout it and draft a script." Then run the Round 1 questions below.
 
