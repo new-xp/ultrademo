@@ -57,6 +57,9 @@ export default {
   // intro: {title: 'My App - walkthrough', subtitle: 'A quick tour', script: '...'},
   //   // title card over a framed app screenshot (auto-filled from the first
   //   // captured scene; pass `screenshot: '<file>'` to override).
+  //   // `layout: 'split'` puts the text on the left and the screenshot on the
+  //   // right (nice when the first screen is tall/busy); default stacks them.
+  //   // Vertical renders always stack regardless.
   //   // `script` narrates the card: the cold-open line (what the product is,
   //   // who it's for) plays here, starting ~0.75s after the card appears, and
   //   // the slide holds until the line finishes.

@@ -51,7 +51,14 @@ export type SlideNarration = {
   audioDuration?: number;
   words?: WordTiming[];
 };
-export type IntroSlide = SlideNarration & {title: string; subtitle?: string; screenshot?: string};
+// layout 'split' puts the text block on the left and the framed screenshot on
+// the right (wide compositions only - vertical always stacks).
+export type IntroSlide = SlideNarration & {
+  title: string;
+  subtitle?: string;
+  screenshot?: string;
+  layout?: 'stacked' | 'split';
+};
 export type OutroSlide = SlideNarration & {title: string; subtitle?: string; url?: string};
 
 export type Scene = {
@@ -607,58 +614,89 @@ const SlideView: React.FC<{
   // away from the caption band so the two text layers never collide.
   const narrated = Boolean(kind === 'intro' ? intro?.audio : outro?.audio);
   const clear = narrated ? {[captionPosition === 'top' ? 'paddingTop' : 'paddingBottom']: 250} : {};
+  // Intro-only split layout: text left, screenshot right. Vertical compositions
+  // don't have the width for it, so they always stack.
+  const split = kind === 'intro' && intro?.layout === 'split' && Boolean(intro?.screenshot) && layout !== 'vertical';
+
+  const screenshotCard =
+    kind === 'intro' && intro?.screenshot ? (
+      <div
+        style={{
+          transform: `translateY(${rise * -0.6}px)`,
+          opacity: fade,
+          marginBottom: split ? 0 : 44,
+          borderRadius: 16,
+          overflow: 'hidden',
+          border: '1px solid rgba(148,163,184,0.3)',
+          boxShadow: '0 40px 90px -30px rgba(0,0,0,0.8)',
+          width: split ? 880 : layout === 'vertical' ? 760 : 980,
+          flexShrink: 0,
+        }}
+      >
+        <Img src={staticFile(intro.screenshot)} style={{width: '100%', display: 'block'}} />
+      </div>
+    ) : null;
+
+  const textBlock = (
+    <div
+      style={{
+        transform: `translateY(${rise}px)`,
+        opacity: fade,
+        textAlign: split ? 'left' : 'center',
+        padding: split ? 0 : '0 80px',
+        ...(split ? {flex: 1, minWidth: 0} : {}),
+      }}
+    >
+      <div style={{width: 54, height: 5, background: brand, borderRadius: 3, margin: split ? '0 0 30px' : '0 auto 30px'}} />
+      <div
+        style={{
+          color: '#f8fafc',
+          fontSize: split ? 68 : layout === 'vertical' ? 66 : 76,
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          lineHeight: 1.1,
+          maxWidth: split ? 760 : 1500,
+        }}
+      >
+        {title}
+      </div>
+      {subtitle ? (
+        <div style={{color: '#9aa3b5', fontSize: layout === 'vertical' ? 34 : 34, marginTop: 22}}>
+          {subtitle}
+        </div>
+      ) : null}
+      {kind === 'outro' && outro?.url ? (
+        <div style={{color: brand, fontSize: layout === 'vertical' ? 34 : 32, marginTop: 30, fontWeight: 600}}>
+          {outro.url}
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <AbsoluteFill
       style={{
         background: 'radial-gradient(ellipse at 50% 35%, #16233b 0%, #0b1120 70%)',
+        flexDirection: split ? 'row' : 'column',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: split ? 80 : 0,
+        padding: split ? '0 90px' : 0,
         fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         ...clear,
       }}
     >
-      {kind === 'intro' && intro?.screenshot ? (
-        <div
-          style={{
-            transform: `translateY(${rise * -0.6}px)`,
-            opacity: fade,
-            marginBottom: 44,
-            borderRadius: 16,
-            overflow: 'hidden',
-            border: '1px solid rgba(148,163,184,0.3)',
-            boxShadow: '0 40px 90px -30px rgba(0,0,0,0.8)',
-            width: layout === 'vertical' ? 760 : 980,
-          }}
-        >
-          <Img src={staticFile(intro.screenshot)} style={{width: '100%', display: 'block'}} />
-        </div>
-      ) : null}
-      <div style={{transform: `translateY(${rise}px)`, opacity: fade, textAlign: 'center', padding: '0 80px'}}>
-        <div style={{width: 54, height: 5, background: brand, borderRadius: 3, margin: '0 auto 30px'}} />
-        <div
-          style={{
-            color: '#f8fafc',
-            fontSize: layout === 'vertical' ? 66 : 76,
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-            maxWidth: 1500,
-          }}
-        >
-          {title}
-        </div>
-        {subtitle ? (
-          <div style={{color: '#9aa3b5', fontSize: layout === 'vertical' ? 34 : 34, marginTop: 22}}>
-            {subtitle}
-          </div>
-        ) : null}
-        {kind === 'outro' && outro?.url ? (
-          <div style={{color: brand, fontSize: layout === 'vertical' ? 34 : 32, marginTop: 30, fontWeight: 600}}>
-            {outro.url}
-          </div>
-        ) : null}
-      </div>
+      {split ? (
+        <>
+          {textBlock}
+          {screenshotCard}
+        </>
+      ) : (
+        <>
+          {screenshotCard}
+          {textBlock}
+        </>
+      )}
     </AbsoluteFill>
   );
 };
