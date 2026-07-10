@@ -34,11 +34,12 @@ Collect inputs in a few short, batched rounds - not one overwhelming wall of que
 **Round 1 - the essentials (unblocks scouting; ask these together):**
 - **App URL** and the **brief** (what to show - a one-liner is fine).
 - **Project name:** propose one derived from the app + topic (it becomes the folder `projects/<app>-<topic>-<YYYY-MM-DD-HHMM>/` and the output filename) and let the user confirm or rename. Naming it up front means every later path you show them already makes sense.
-- **Target length** (default: walkthrough ~2-3 min; sizzle ~60-90s) and the app's **color scheme** (light/dark).
+- The app's **color scheme** (light/dark). Do NOT ask for target length here - duration is a Round 2 question, asked after scouting when you can offer real options (see below). If the user volunteers a length now, note it and still confirm the scene budget against it after scouting.
 - **Sign-in - never ask for credentials in chat.** The user signs in once via `npm run login -- <profile> <url>` inside the opened browser window; the session persists to `.profiles/` and captures reuse it. For a simple form login, the flow's `setup` can instead read `APP_EMAIL` / `APP_PASSWORD` from `.env`. Point the user to whichever fits; do not accept a password typed into the conversation.
 - **Narration voice:** check `.env` for `ELEVENLABS_API_KEY`. If it's missing, ask the user to add it to `.env` themselves (never paste a key in chat) or accept the free Piper/`say` fallback. `ELEVENLABS_VOICE_ID` is optional (a built-in demo voice is the default) and also lives in `.env`. Whenever you send the user to `.env`, give its absolute path and offer to open it in an editor window (see the absolute-path rule up top).
 
 **Round 2 - shape and polish (ride on what scouting found; ask at or before the script gate):**
+- **Duration - the first Round 2 question, and always grounded in the scout.** From the coverage map, count the beats the brief actually needs and cost them (~6-10s per scene; clips run longer than stills). Then offer 2-3 concrete cuts as structured options, each stating length, scene count, and what's in or out - e.g. "60-90s sizzle: 7 scenes, the golden path only", "~2 min walkthrough: 11 scenes, adds linking a contact + the timeline payoff", "~3 min: all 14 beats the brief touches". Recommend one and say why. Never offer a bare "short / medium / long" - the value of asking here is that the options carry real scene budgets. If the user already named a length in Round 1, confirm the beats fit it and name what gets cut if they don't.
 - **Where the video starts (start scene)** and the golden path - e.g. "open on the dashboard, then go to Campaigns, then...". Concrete now because you have the surface map.
 - **Intro / outro slides** (offer, opt-in): a title card with an app screenshot to open, a thank-you / "learn more" card with the brand URL to close. Ask whether they want them and whether to auto-write the copy or use theirs.
 - **Caption style:** default is outlined text (light fill + dark stroke, no background box, legible over any screen) at the bottom; offer the alternatives (pill chip / bar lower-third theme, size, top/bottom). If the voice is ElevenLabs, also offer karaoke **word-highlight** (dim / pill / wipe) - let the user pick the style; it's off by default and unavailable on the free voices - see Step 3.
@@ -57,7 +58,7 @@ Precedence rule: context steers where to scout and what vocabulary to use, but i
 
 ## Step 1 - Scout (read-only)
 
-Explore the live app with a throwaway Playwright script (headless, viewport 1920x1080). Learn the app's own vocabulary, find exact headings/button labels for selectors, and screenshot key pages for yourself. Produce a short scout report for the user: surfaces found, proposed golden path, risks.
+Explore the live app with a throwaway Playwright script (headless, viewport 1920x1080). Learn the app's own vocabulary, find exact headings/button labels for selectors, and screenshot key pages for yourself. Produce a short scout report for the user: surfaces found, proposed golden path, risks, and an estimated scene count for the brief - that estimate is what makes the Round 2 duration options real.
 
 **If the codebase is available, mine it before opening the browser** - it makes scouting faster and the flow sturdier:
 - routes/pages and navigation code give you the surface list and a golden-path hypothesis for free;
