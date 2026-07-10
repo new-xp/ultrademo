@@ -63,9 +63,10 @@ export default {
   //   // `script` narrates the card: the cold-open line (what the product is,
   //   // who it's for) plays here, starting ~0.75s after the card appears, and
   //   // the slide holds until the line finishes.
-  // outro: {title: 'Thanks for watching', subtitle: 'Made with Ultrademo', url: 'myapp.com', script: '...'},
+  // outro: {title: 'Thanks for watching', subtitle: 'Try it free', url: 'myapp.com', script: '...'},
   //   // `script` here carries the closing tagline + sign-off, so the spoken
-  //   // CTA lands while the URL is on screen.
+  //   // CTA lands while the URL is on screen. The close sells YOUR product -
+  //   // it never mentions Ultrademo or how the video was made.
 
   // Runs once before the scenes (not part of any clip window).
   setup: async (page) => {
