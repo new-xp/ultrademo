@@ -47,8 +47,14 @@ const outDir = `projects/${project}/out`;
 // Mirror of the renderer's timing math (Demo.tsx) - keep in sync.
 const HOLD_AFTER_AUDIO = 0.7;
 const HOLD_AFTER_CLIP = 0.4;
-const SLIDE_SECONDS = 3; // intro/outro title-card duration (Demo.tsx)
+const SLIDE_SECONDS = 3; // minimum intro/outro title-card duration (Demo.tsx)
+const SLIDE_LEAD_IN = 0.75; // narrated slides: audio starts this long after the card appears
 const FPS = 30;
+const slideSeconds = (slide) => {
+  if (!slide) return 0;
+  if (!slide.audioDuration) return SLIDE_SECONDS;
+  return Math.max(Math.round(SLIDE_SECONDS * FPS), Math.round((SLIDE_LEAD_IN + slide.audioDuration + HOLD_AFTER_AUDIO) * FPS)) / FPS;
+};
 const clipRate = (s) => {
   const narration = (s.audioDuration ?? s.durationHint ?? 4) + HOLD_AFTER_AUDIO;
   const clip = s.clipDuration ?? 0;
@@ -104,18 +110,25 @@ if (!stems) {
   console.log(`rendered ${finalOut} (finalized)`);
 
   // scene start offsets on the final timeline; an intro slide pushes scene 1 back
-  let t = sb.intro ? SLIDE_SECONDS : 0;
+  let t = slideSeconds(sb.intro);
   const starts = sb.scenes.map((s) => {
     const at = t;
     t += sceneSeconds(s);
     return at;
   });
+  const outroStart = t;
+  t += slideSeconds(sb.outro);
 
   // 1. clean video track
   renderComp(`${dir}/video.mp4`, {storyboard: null, captions: false, audio: false});
 
-  // 2. timeline-aligned narration track (each clip delayed to its scene start)
-  const withAudio = sb.scenes.map((s, i) => ({s, at: starts[i]})).filter((x) => x.s.audio);
+  // 2. timeline-aligned narration track (each clip delayed to its unit's start;
+  //    narrated slides count too, offset by the slide lead-in)
+  const withAudio = [
+    ...(sb.intro?.audio ? [{s: sb.intro, at: SLIDE_LEAD_IN}] : []),
+    ...sb.scenes.map((s, i) => ({s, at: starts[i]})).filter((x) => x.s.audio),
+    ...(sb.outro?.audio ? [{s: sb.outro, at: outroStart + SLIDE_LEAD_IN}] : []),
+  ];
   const inputs = withAudio.flatMap((x) => ['-i', `${publicDir}/${x.s.audio}`]);
   const delays = withAudio
     .map((x, i) => `[${i}]adelay=${Math.round(x.at * 1000)}:all=1[a${i}]`)
@@ -132,12 +145,13 @@ if (!stems) {
     const s2 = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
     return `${h}:${m}:${s2},${String(ms % 1000).padStart(3, '0')}`;
   };
-  const srt = sb.scenes
-    .map((s, i) => {
-      const start = starts[i];
-      const end = start + (s.audioDuration ?? s.durationHint ?? 4);
-      return `${i + 1}\n${ts(start)} --> ${ts(end)}\n${s.script}\n`;
-    })
+  const srtUnits = [
+    ...(sb.intro?.script ? [{script: sb.intro.script, at: SLIDE_LEAD_IN, dur: sb.intro.audioDuration}] : []),
+    ...sb.scenes.map((s, i) => ({script: s.script, at: starts[i], dur: s.audioDuration ?? s.durationHint ?? 4})),
+    ...(sb.outro?.script ? [{script: sb.outro.script, at: outroStart + SLIDE_LEAD_IN, dur: sb.outro.audioDuration}] : []),
+  ];
+  const srt = srtUnits
+    .map((u, i) => `${i + 1}\n${ts(u.at)} --> ${ts(u.at + (u.dur ?? 4))}\n${u.script}\n`)
     .join('\n');
   writeFileSync(`${dir}/captions.srt`, srt);
 

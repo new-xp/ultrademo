@@ -30,7 +30,7 @@ const SIMILARITY = process.env.ELEVENLABS_SIMILARITY ?? '0.75';
 const args = process.argv.slice(2);
 const project = args.find((a) => !a.startsWith('--'));
 if (!project) {
-  console.error('Usage: npm run tts -- <project> [--redo <sceneId,sceneId|all>]');
+  console.error('Usage: npm run tts -- <project> [--redo <sceneId,sceneId|all>] (slide ids: intro-slide, outro-slide)');
   process.exit(1);
 }
 const redoArg = args.includes('--redo') ? (args[args.indexOf('--redo') + 1] ?? 'all') : null;
@@ -160,14 +160,23 @@ const macSay = (text, outFile) => {
 
 const synth = {elevenlabs, piper, say: macSay}[engine];
 
-for (const scene of storyboard.scenes) {
-  const rel = `audio/${scene.id}.mp3`;
+// Narratable units: every scene, plus the intro/outro slides when they carry a
+// script (the renderer starts slide audio slightly after the card appears and
+// holds the slide until the line finishes).
+const units = [
+  ...(storyboard.intro?.script ? [{id: 'intro-slide', obj: storyboard.intro}] : []),
+  ...storyboard.scenes.map((scene) => ({id: scene.id, obj: scene})),
+  ...(storyboard.outro?.script ? [{id: 'outro-slide', obj: storyboard.outro}] : []),
+];
+
+for (const {id, obj: scene} of units) {
+  const rel = `audio/${id}.mp3`;
   const outFile = path.join(assetsDir, rel);
   const sigFile = `${outFile}.sig`;
   const wordsFile = `${outFile}.words.json`; // per-word timings cached beside the audio
   const sig = createHash('sha256').update(`${voiceSig}\n${scene.script}`).digest('hex');
 
-  const force = redo.has('all') || redo.has(scene.id);
+  const force = redo.has('all') || redo.has(id);
   const cached =
     !force && existsSync(outFile) && existsSync(sigFile) && readFileSync(sigFile, 'utf8') === sig;
 
@@ -186,7 +195,7 @@ for (const scene of storyboard.scenes) {
   if (words) scene.words = words;
   else delete scene.words;
   console.log(
-    `${scene.id}: ${scene.audioDuration.toFixed(2)}s${cached ? ' (cached)' : ''}${words ? ' +words' : ''}`,
+    `${id}: ${scene.audioDuration.toFixed(2)}s${cached ? ' (cached)' : ''}${words ? ' +words' : ''}`,
   );
 }
 

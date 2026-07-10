@@ -54,10 +54,15 @@ export default {
   //   //   rest dimmed) | 'pill' (brand chip under active word) | 'wipe' (accent
   //   //   sweeps across each word as spoken - recommended with ElevenLabs).
   //   //   Free voices ignore it and stay static.
-  // intro: {title: 'My App - walkthrough', subtitle: 'A quick tour'},
+  // intro: {title: 'My App - walkthrough', subtitle: 'A quick tour', script: '...'},
   //   // title card over a framed app screenshot (auto-filled from the first
-  //   // captured scene; pass `screenshot: '<file>'` to override)
-  // outro: {title: 'Thanks for watching', subtitle: 'Made with Ultrademo', url: 'myapp.com'},
+  //   // captured scene; pass `screenshot: '<file>'` to override).
+  //   // `script` narrates the card: the cold-open line (what the product is,
+  //   // who it's for) plays here, starting ~0.75s after the card appears, and
+  //   // the slide holds until the line finishes.
+  // outro: {title: 'Thanks for watching', subtitle: 'Made with Ultrademo', url: 'myapp.com', script: '...'},
+  //   // `script` here carries the closing tagline + sign-off, so the spoken
+  //   // CTA lands while the URL is on screen.
 
   // Runs once before the scenes (not part of any clip window).
   setup: async (page) => {

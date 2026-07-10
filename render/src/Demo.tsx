@@ -43,8 +43,16 @@ const LITERAL_DEFAULT = '#7dd3fc'; // sky - reads as "interactive UI element"
 
 export type WordTiming = {w: string; start: number; end: number};
 
-export type IntroSlide = {title: string; subtitle?: string; screenshot?: string};
-export type OutroSlide = {title: string; subtitle?: string; url?: string};
+// Slides can carry narration: the tts step fills audio/audioDuration/words from
+// `script` exactly like a scene. A narrated slide holds until its audio ends.
+export type SlideNarration = {
+  script?: string;
+  audio?: string;
+  audioDuration?: number;
+  words?: WordTiming[];
+};
+export type IntroSlide = SlideNarration & {title: string; subtitle?: string; screenshot?: string};
+export type OutroSlide = SlideNarration & {title: string; subtitle?: string; url?: string};
 
 export type Scene = {
   id: string;
@@ -94,8 +102,15 @@ export const sceneFrames = (s: Scene): number => {
 };
 
 export const slideFrames = Math.round(SLIDE_SECONDS * FPS);
-export const introFrames = (sb: Storyboard): number => (sb.intro ? slideFrames : 0);
-export const outroFrames = (sb: Storyboard): number => (sb.outro ? slideFrames : 0);
+// Narration starts this long after a slide appears - the viewer reads the card
+// first, then the voice comes in (starting cold on frame 1 wastes the beat).
+export const SLIDE_LEAD_IN = 0.75;
+const slideFramesFor = (slide?: SlideNarration): number =>
+  slide?.audioDuration
+    ? Math.max(slideFrames, Math.round((SLIDE_LEAD_IN + slide.audioDuration + HOLD_AFTER_AUDIO) * FPS))
+    : slideFrames;
+export const introFrames = (sb: Storyboard): number => (sb.intro ? slideFramesFor(sb.intro) : 0);
+export const outroFrames = (sb: Storyboard): number => (sb.outro ? slideFramesFor(sb.outro) : 0);
 export const totalFrames = (sb: Storyboard): number =>
   introFrames(sb) + sb.scenes.reduce((sum, s) => sum + sceneFrames(s), 0) + outroFrames(sb);
 
@@ -581,12 +596,17 @@ const SlideView: React.FC<{
   outro?: OutroSlide;
   brand: string;
   layout: Layout;
-}> = ({kind, intro, outro, brand, layout}) => {
+  captionPosition?: 'bottom' | 'top';
+}> = ({kind, intro, outro, brand, layout, captionPosition}) => {
   const frame = useCurrentFrame();
   const rise = interpolate(frame, [0, 18], [24, 0], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)});
   const fade = interpolate(frame, [0, 18], [0, 1], {extrapolateRight: 'clamp'});
   const title = kind === 'intro' ? intro?.title : outro?.title;
   const subtitle = kind === 'intro' ? intro?.subtitle : outro?.subtitle;
+  // A narrated slide shares the frame with its caption: shift the card content
+  // away from the caption band so the two text layers never collide.
+  const narrated = Boolean(kind === 'intro' ? intro?.audio : outro?.audio);
+  const clear = narrated ? {[captionPosition === 'top' ? 'paddingTop' : 'paddingBottom']: 250} : {};
 
   return (
     <AbsoluteFill
@@ -595,6 +615,7 @@ const SlideView: React.FC<{
         justifyContent: 'center',
         alignItems: 'center',
         fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        ...clear,
       }}
     >
       {kind === 'intro' && intro?.screenshot ? (
@@ -680,6 +701,34 @@ const SceneView: React.FC<{
   );
 };
 
+// Narration + captions for a title-card slide. Everything sits in a nested
+// Sequence delayed by SLIDE_LEAD_IN so the card lands visually before the voice
+// starts - and so the karaoke word timings (relative to audio start) line up.
+const SlideNarrationLayer: React.FC<{
+  slide: SlideNarration;
+  layout: Layout;
+  captions: boolean;
+  audio: boolean;
+  captionStyle: CaptionStyle;
+  brand: string;
+}> = ({slide, layout, captions, audio, captionStyle, brand}) => {
+  if (!slide.audio) return null;
+  return (
+    <Sequence from={Math.round(SLIDE_LEAD_IN * FPS)}>
+      {captions && slide.script ? (
+        <Caption
+          text={slide.script}
+          words={slide.words}
+          layout={layout}
+          style={captionStyle}
+          highlightColor={brand}
+        />
+      ) : null}
+      {audio ? <Audio src={staticFile(slide.audio)} /> : null}
+    </Sequence>
+  );
+};
+
 // One black overlay for the whole piece: reveals over the first TOPTAIL frames,
 // closes over the last TOPTAIL. Replaces the per-scene fades that caused the flash.
 const TopTail: React.FC<{total: number}> = ({total}) => {
@@ -714,8 +763,16 @@ export const Demo: React.FC<{
   return (
     <AbsoluteFill style={{backgroundColor: '#0f172a'}}>
       {storyboard.intro ? (
-        <Sequence from={0} durationInFrames={slideFrames}>
-          <SlideView kind="intro" intro={storyboard.intro} brand={brand} layout={layout} />
+        <Sequence from={0} durationInFrames={introFrames(storyboard)}>
+          <SlideView kind="intro" intro={storyboard.intro} brand={brand} layout={layout} captionPosition={captionStyle.position} />
+          <SlideNarrationLayer
+            slide={storyboard.intro}
+            layout={layout}
+            captions={captions}
+            audio={audio}
+            captionStyle={captionStyle}
+            brand={brand}
+          />
         </Sequence>
       ) : null}
 
@@ -739,8 +796,16 @@ export const Demo: React.FC<{
       })}
 
       {storyboard.outro ? (
-        <Sequence from={cursor} durationInFrames={slideFrames}>
-          <SlideView kind="outro" outro={storyboard.outro} brand={brand} layout={layout} />
+        <Sequence from={cursor} durationInFrames={outroFrames(storyboard)}>
+          <SlideView kind="outro" outro={storyboard.outro} brand={brand} layout={layout} captionPosition={captionStyle.position} />
+          <SlideNarrationLayer
+            slide={storyboard.outro}
+            layout={layout}
+            captions={captions}
+            audio={audio}
+            captionStyle={captionStyle}
+            brand={brand}
+          />
         </Sequence>
       ) : null}
 
