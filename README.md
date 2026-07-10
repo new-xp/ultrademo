@@ -24,10 +24,23 @@ Ultrademo is a capture-and-render pipeline plus a Claude Code skill that drives 
 **Recommended - install the skill:**
 
 ```bash
-npx skills add new-xp/ultrademo
+npx skills add new-xp/ultrademo          # pick YOUR agent when prompted
+npx skills add new-xp/ultrademo -a claude-code   # or skip the prompt (Claude Code)
 ```
 
-This adds the `ultrademo` skill to your coding agent (Claude Code, Codex, Cursor, OpenCode, Windsurf, ...). Then open your project and ask for a demo video: on first run the skill provisions the pipeline for you - clones this repo into `ultrademo-workspace/`, runs `npm install` and `playwright install`, creates `.env`, and verifies your environment - then scouts your app, drafts a scene-by-scene script for your sign-off, captures, and renders.
+One command, either form. **In the agent picker, choose the agent you actually use** (Claude Code, Codex, Cursor, OpenCode, Windsurf, ...) - the "universal" option installs to `.agents/skills/`, a shared location some agents (including Claude Code today) don't scan, so the skill silently never shows up.
+
+**Then start it** - the installer finishes quietly, so this is the step people miss:
+
+```bash
+cd your-app          # the project you want a video of
+claude               # or your agent of choice
+> make a demo video of this app
+```
+
+On first run the skill provisions the pipeline for you - clones this repo into `ultrademo-workspace/`, runs `npm install` and `playwright install`, creates `.env`, and verifies your environment - then scouts your app, drafts a scene-by-scene script for your sign-off, captures, and renders.
+
+**Skill not showing up?** (`/ultrademo` unknown, or your agent doesn't list it): it almost certainly landed in `.agents/skills/` from the "universal" picker choice. Re-run the install with your agent named explicitly (`npx skills add new-xp/ultrademo -a claude-code`), or move the `ultrademo` and `ultrademo-rerun` folders into `.claude/skills/` yourself.
 
 Built and tested with Claude Code; any agent that reads `AGENTS.md` can follow the same playbook. Gemini CLI looks for `GEMINI.md` by default, so set its `contextFileName` to `AGENTS.md` (or copy the file).
 

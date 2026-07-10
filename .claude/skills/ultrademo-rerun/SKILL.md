@@ -29,4 +29,4 @@ Divergence handling (cosmetic change / broken selector / feature changed) is def
 
 ## 4. Report
 
-Per project: what changed on screen (scene by scene, vs the archived render), which scenes needed selector repair, what re-billed (usually nothing), and where the outputs are. If nothing visibly changed, say exactly that - a no-op refresh is a valid, reportable outcome.
+Per project: what changed on screen (scene by scene, vs the archived render), which scenes needed selector repair, what re-billed (usually nothing), and where the outputs are - absolute paths, per the main playbook's rule. If nothing visibly changed, say exactly that - a no-op refresh is a valid, reportable outcome.

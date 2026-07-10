@@ -11,12 +11,14 @@ You are driving the Ultrademo pipeline in this repo: Playwright capture → stor
 1. **Script gate** - no capture happens before the user signs off the scene-by-scene outline.
 2. **Review gate** - the first render gets scene-level review before you call it done.
 
+**Every file path you show the user is absolute.** Sessions often run in worktrees, background jobs, or nested folders the user can't easily locate - a relative path like `projects/foo/flow.mjs` is a dead end for them, an absolute path is clickable in most terminals and IDEs. This applies to the `.env` file, the script outline, the flow file, and the finished MP4. When the user needs to EDIT a file (`.env`, the outline), also offer to open it for them in a separate window: `open <path>` on macOS, `start` on Windows, `xdg-open` on Linux, or `code <path>` if VS Code is around.
+
 ## Step -1 - Bootstrap or refresh the workspace
 
 If the current folder does not contain the Ultrademo pipeline (`capture/capture.mjs` absent), the skill was installed standalone. Set the workspace up:
 1. Clone https://github.com/new-xp/ultrademo into `ultrademo-workspace/` (or a location the user names).
 2. `npm install`, then `node_modules/.bin/playwright install chromium` (the Playwright version is pinned by the workspace lockfile).
-3. **Create the `.env` file if it doesn't exist** - copy `.env.example` to `.env` (it's gitignored). This is where the narration key and app login go; never make the user discover later that they needed one.
+3. **Create the `.env` file if it doesn't exist** - copy `.env.example` to `.env` (it's gitignored). This is where the narration key and app login go; never make the user discover later that they needed one. Tell the user its **absolute path** on its own line (clickable) and offer to open it in an editor window for them (`open`/`start`/`xdg-open`/`code`) - don't make them hunt for a dotfile.
 4. `npm run doctor` to verify the environment.
 
 Do not improvise a partial pipeline - the skill only drives the real one.
@@ -27,13 +29,14 @@ Do not improvise a partial pipeline - the skill only drives the real one.
 
 ## Step 0 - Intake
 
-Collect inputs in a few short, batched rounds - not one overwhelming wall of questions. Use structured questions (AskUserQuestion or the host's equivalent) so the user picks instead of typing. Only ask what's still missing or not discoverable. **Secrets and credentials never go in the chat - they go in files** (the user was uncomfortable pasting them, and it's the right security posture anyway).
+Collect inputs in a few short, batched rounds - not one overwhelming wall of questions. **Use the host's structured-question UI (AskUserQuestion in Claude Code), not free-text questions typed into the chat** - one structured call with 2-4 questions per round, each with concrete options, so the user clicks instead of composing an essay reply. Fall back to inline prose questions only when the host has no such tool. Only ask what's still missing or not discoverable. **Secrets and credentials never go in the chat - they go in files** (the user was uncomfortable pasting them, and it's the right security posture anyway).
 
 **Round 1 - the essentials (unblocks scouting; ask these together):**
 - **App URL** and the **brief** (what to show - a one-liner is fine).
+- **Project name:** propose one derived from the app + topic (it becomes the folder `projects/<app>-<topic>-<YYYY-MM-DD-HHMM>/` and the output filename) and let the user confirm or rename. Naming it up front means every later path you show them already makes sense.
 - **Target length** (default: walkthrough ~2-3 min; sizzle ~60-90s) and the app's **color scheme** (light/dark).
 - **Sign-in - never ask for credentials in chat.** The user signs in once via `npm run login -- <profile> <url>` inside the opened browser window; the session persists to `.profiles/` and captures reuse it. For a simple form login, the flow's `setup` can instead read `APP_EMAIL` / `APP_PASSWORD` from `.env`. Point the user to whichever fits; do not accept a password typed into the conversation.
-- **Narration voice:** check `.env` for `ELEVENLABS_API_KEY`. If it's missing, ask the user to add it to `.env` themselves (never paste a key in chat) or accept the free Piper/`say` fallback. `ELEVENLABS_VOICE_ID` is optional (a built-in demo voice is the default) and also lives in `.env`.
+- **Narration voice:** check `.env` for `ELEVENLABS_API_KEY`. If it's missing, ask the user to add it to `.env` themselves (never paste a key in chat) or accept the free Piper/`say` fallback. `ELEVENLABS_VOICE_ID` is optional (a built-in demo voice is the default) and also lives in `.env`. Whenever you send the user to `.env`, give its absolute path and offer to open it in an editor window (see the absolute-path rule up top).
 
 **Round 2 - shape and polish (ride on what scouting found; ask at or before the script gate):**
 - **Where the video starts (start scene)** and the golden path - e.g. "open on the dashboard, then go to Campaigns, then...". Concrete now because you have the surface map.
@@ -78,7 +81,7 @@ The scout report must include a **coverage map**: one row per brief item - FOUND
 
 ## Step 2 - Script gate
 
-Write a scene-by-scene outline to a markdown file the user can edit inline. Per scene: narration line, what's on screen, media type (`still` / `clip` / `phone`), estimated seconds. Include open questions. One idea per scene; put the emotional peak (a live result, a reveal) around two-thirds in. For MARKETING demos (not tutorials), sanity-check the arc against the 7-beat lens: hook → context → agenda → transformation story → feature flow → objection pre-empt → close; feature-listy drafts fail it.
+Draft a scene-by-scene outline and **present it in full in the chat message itself - the chat is the review surface.** The user reads it there and replies with edits in plain words ("scene 3 is too salesy", "swap 4 and 5"); you fold them in and re-post the changed scenes. Do not make finding a file the price of reviewing the script - users in worktrees, background sessions, or unfamiliar folders will never locate it. Also write the same outline to a markdown file for anyone who prefers editing inline, and give its absolute path; treat the file as the mirror, the chat as the gate. Per scene: narration line, what's on screen, media type (`still` / `clip` / `phone`), estimated seconds. Include open questions. One idea per scene; put the emotional peak (a live result, a reveal) around two-thirds in. For MARKETING demos (not tutorials), sanity-check the arc against the 7-beat lens: hook → context → agenda → transformation story → feature flow → objection pre-empt → close; feature-listy drafts fail it.
 
 **Narration voice (default = the Enthusiast):** first person, someone showing a colleague a product they genuinely like - contractions always, real opinions ("what won me over is...", "this is where it gets good"), a little energy. Not a brochure, not a flat feature-reader. The single biggest quality lever, because AI-default narration is the #1 rejection reason (see CLAUDE.md quality bar). Write it lively on purpose:
 - **State the intent as an action verb, then the control.** Lead every step with what you're accomplishing - a verb: *create, add, assign, link, open* - and only then name the button. "Let's create a new company - I'll hit New Company and name it Pied Piper." NOT "First, a new company..." (still just fronting the button's noun) and NOT bare "New Company" (a label the viewer has to interpret). The viewer should understand the goal from the words alone, before they even see the click.
@@ -100,7 +103,7 @@ Wait for the user's edits; fold them back verbatim. Do not start capture until t
 
 ## Step 3 - Flow + capture
 
-Create the project folder using the naming convention **`projects/<app>-<feature-or-topic>-<YYYY-MM-DD-HHMM>/`** (timestamp = now, at authoring) and translate the locked script into `projects/<project>/flow.mjs` (start from `capture/flow-template.mjs`). Keep the same project folder across retakes - it holds the flow, the TTS cache, and every take's assets; a new name means starting from scratch. If the flow mutates app state, write the reset recipe as `projects/<project>/reset.mjs` and run it before each retake. Everything for the video lives in that one folder (`flow.mjs`, `reset.mjs`, `assets/`, `out/`). Then:
+Create the project folder using the naming convention **`projects/<app>-<feature-or-topic>-<YYYY-MM-DD-HHMM>/`** (timestamp = now, at authoring; use the name the user confirmed in Round 1) and translate the locked script into `projects/<project>/flow.mjs` (start from `capture/flow-template.mjs`). Tell the user the flow file's absolute path when you create it - it's the one file they may want to read or tweak by hand. Keep the same project folder across retakes - it holds the flow, the TTS cache, and every take's assets; a new name means starting from scratch. If the flow mutates app state, write the reset recipe as `projects/<project>/reset.mjs` and run it before each retake. Everything for the video lives in that one folder (`flow.mjs`, `reset.mjs`, `assets/`, `out/`). Then:
 
 ```
 npm run capture -- <project>
