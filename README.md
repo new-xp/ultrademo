@@ -4,7 +4,7 @@ Point your AI Agent at your web app and get a narrated demo video. Everything ru
 
 ## See it work
 
-![Ultrademo output: building a project tracker in Notion, captured and narrated automatically](docs/notion-tracker.gif)
+![Ultrademo output: building a project tracker in Notion, captured and narrated automatically](docs/notion-tracker-2026-07-10.gif)
 
 This 90-second Notion tutorial was produced end to end by the pipeline: scouted, scripted (with a human sign-off), captured through a signed-in browser session, narrated with ElevenLabs, and rendered - all from [one flow file](examples/notion-tracker/flow.mjs). The full MP4 with narration is on [ultrademo.net](https://ultrademo.net).
 
