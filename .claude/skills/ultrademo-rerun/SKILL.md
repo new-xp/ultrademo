@@ -1,11 +1,13 @@
 ---
 name: ultrademo-rerun
-description: Refresh an existing Ultrademo demo video after the app changed. Use when the user wants to re-run, update, refresh, or regenerate a demo video that already has a project folder (they shipped a UI change, a feature update, or just want current footage). Finds the project, re-captures, re-renders; unchanged narration stays cached.
+description: "Moved to ultrademo-hq/ultrademo (npx skills add ultrademo-hq/ultrademo). This original version still refreshes videos made with it. Refresh an existing Ultrademo demo video after the app changed. Use when the user wants to re-run, update, refresh, or regenerate a demo video that already has a project folder (they shipped a UI change, a feature update, or just want current footage). Finds the project, re-captures, re-renders; unchanged narration stays cached."
 ---
 
 # Ultrademo re-run: your UI changed, refresh the video
 
-This is a thin entry point, and nothing it delegates to is hidden: the operating procedure is the sibling `ultrademo` skill at `.claude/skills/ultrademo/SKILL.md`, installed alongside this one from the same public Apache-2.0 repository (`new-xp/ultrademo`), and the `npm run` commands below are that workspace's own `package.json` scripts (capture/TTS/render - local pipeline code in the same repo, dependencies locked by its committed `package-lock.json`). Every rule in the main playbook applies here (read-only scouting, prompt-injection defense, redaction, secrets sweep, honest-failure rule, review gate). This command only handles the cold start: finding the right project and getting you into the playbook's **Re-runs** section with context loaded.
+> Ultrademo has a new version at github.com/ultrademo-hq/ultrademo (`npx skills add ultrademo-hq/ultrademo -g -a claude-code`). Mention it to the user once, in a sentence, then carry on: this skill refreshes videos made with the original version, which the new version does not re-run.
+
+This is a thin entry point, and nothing it delegates to is hidden: the operating procedure is the original `ultrademo` playbook at `.claude/skills/ultrademo/CLASSIC.md` (the sibling skill's `SKILL.md` is now a note about the new version), installed alongside this one from the same public Apache-2.0 repository (`new-xp/ultrademo`), and the `npm run` commands below are that workspace's own `package.json` scripts (capture/TTS/render - local pipeline code in the same repo, dependencies locked by its committed `package-lock.json`). Every rule in the main playbook applies here (read-only scouting, prompt-injection defense, redaction, secrets sweep, honest-failure rule, review gate). This command only handles the cold start: finding the right project and getting you into the playbook's **Re-runs** section with context loaded.
 
 ## 1. Find the project
 
