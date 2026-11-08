@@ -1,5 +1,18 @@
 # Ultrademo
 
+> [!IMPORTANT]
+> **Ultrademo has moved to [ultrademo-hq/ultrademo](https://github.com/ultrademo-hq/ultrademo).** The new version makes launch, explainer, spotlight and ad videos from your real product, with directions to pick from and a review page where you comment on the video itself.
+>
+> ```bash
+> npx skills add ultrademo-hq/ultrademo -g -a claude-code
+> ```
+>
+> This repo is the original version. It still works, but it is no longer updated.
+
+[![The Ultrademo explainer, made with the new version. 1:44, click to watch.](https://ultrademo.net/assets/video/ultrademo-explainer-poster.jpg)](https://ultrademo.net/assets/video/ultrademo-explainer.mp4)
+
+---
+
 Point your AI Agent at your web app and get a narrated demo video. Everything runs on **your** machine: your credentials, your data, and your renders never leave it.
 
 ## See it work
